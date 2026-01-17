@@ -1,146 +1,146 @@
 import os
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
+from flask_cors import CORS
 from pymongo import MongoClient
-# import [datetime, date, time] จาก [datetime]
-from datetime import datetime, date, time, timedelta # ✅ [แก้ไข] 1: Import เพิ่ม
-from bson.objectid import ObjectId, InvalidId 
+from datetime import datetime, date
+from bson.objectid import ObjectId
+import pytz
 
-# --- 1. เชื่อมต่อ MongoDB (ใช้ localhost ตามที่เคยคุยกัน) ---
+home_bp = Blueprint('home_bp', __name__, url_prefix='/home_bp')
+CORS(home_bp, supports_credentials=True, origins=["http://localhost:5173"])
+
 try:
     client = MongoClient('mongodb://localhost:27017/')
-    db = client['mydatabase'] # <-- [สำคัญ] แก้ชื่อ DB ของคุณตรงนี้
-    
-    # ดึง collections
-    subjects_collection = db["subject"]
+    db = client['mydatabase'] 
     exam_plans_collection = db["exam_plans"]
+    study_sessions_collection = db["study_sessions"]
     
-    client.admin.command('ping')
-    print("เชื่อมต่อ MongoDB (localhost) สำเร็จ!")
+    THAI_TZ = pytz.timezone('Asia/Bangkok')
+    print("✅ MongoDB Connected (Home)")
 except Exception as e:
-    print(f"เกิดข้อผิดพลาดในการเชื่อมต่อ MongoDB (localhost): {e}")
-    raise
-# --------------------------
+    print(f"❌ DB Error: {e}")
 
-# --- 2. สร้าง Blueprint ---
-# (Frontend เรียก /home_bp/...)
-home_bp = Blueprint('home_bp', __name__, url_prefix='/home_bp')
-
-# --- 3. [API 1] ดึง "รายชื่อ" แผน ---
-# Frontend เรียก: GET /home_bp/plans
 @home_bp.route('/plans', methods=['GET'])
 def get_all_plans():
-    """
-    ส่งรายชื่อแผนทั้งหมดที่มีให้ Frontend
-    (สำหรับใส่ใน Dropdown)
-    """
     try:
-        # ค้นหาทุกแผน, แต่เอามาแค่ _id, exam_title และ status
-        plans_cursor = exam_plans_collection.find(
-            {}, 
-            {"_id": 1, "exam_title": 1, "status": 1} # ✅ [แก้ไข] 2: เพิ่ม "status": 1
-        )
-        
-        plan_list = []
-        for plan in plans_cursor:
-            plan_list.append({
-                "_id": str(plan["_id"]),
-                # (Frontend คาดหวัง field นี้)
-                "exam_title": plan.get("exam_title", "แผนไม่มีชื่อ"),
-                "status": plan.get("status", None) # ✅ [แก้ไข] 2: เพิ่ม field status
-            })
-            
-        return jsonify(plan_list)
-    
+        plans = list(exam_plans_collection.find({}, {"_id": 1, "exam_title": 1, "status": 1}).sort("createdAt", -1))
+        for p in plans: 
+            p["_id"] = str(p["_id"])
+        print(f"📚 Returning {len(plans)} plans")
+        return jsonify(plans), 200
     except Exception as e:
-        print(f"เกิดข้อผิดพลาดใน /plans: {e}")
+        print(f"❌ Error in get_all_plans: {e}")
         return jsonify({"error": str(e)}), 500
 
-
-# --- 4. [API 2] ดึง "ข้อมูลสรุป" ของแผนที่เลือก ---
-# Frontend เรียก: GET /home_bp/study_summary/<plan_id>
-@home_bp.route('/study_summary/<plan_id>')
+@home_bp.route('/study_summary/<plan_id>', methods=['GET'])
 def get_study_summary_by_id(plan_id):
-    """
-    ส่งข้อมูลสรุป (Dashboard) ของแผนที่ระบุ (plan_id)
-    """
     try:
-        # 1. ค้นหาแผนที่เลือก
-        active_plan = exam_plans_collection.find_one(
-            {"_id": ObjectId(plan_id)}
-        )
+        if not ObjectId.is_valid(plan_id): 
+            return jsonify({"error": "Invalid ID"}), 400
+        plan_oid = ObjectId(plan_id)
 
-        if not active_plan:
-            return jsonify({"error": "ไม่พบแผนที่ระบุ"}), 404
-
-        # 2. ดึง study_plan (array) จากแผนนั้น
-        study_plan = active_plan.get("study_plan", [])
+        # ดึง sessions ทั้งหมดของแผนนี้
+        sessions = list(study_sessions_collection.find({"exam_id": plan_oid}))
         
-        # 3. [แก้ไข] นับจำนวนวิชาจาก field 'subjects' ใน plan นี้
-        subjects_in_this_plan = active_plan.get("subjects", [])
-        total_subjects = len(subjects_in_this_plan) # ✅ [แก้ไข] 3: แก้ไข logic การนับวิชา
+        print(f"\n{'='*60}")
+        print(f"📊 Plan ID: {plan_id}")
+        print(f"📊 Total sessions found: {len(sessions)}")
 
-        # --- 4. ประมวลผลข้อมูล ---
-        today = date.today()
-        days_read = 0
-        days_remaining = 0
-        today_study = None
-        total_duration_minutes = 0
+        # ใช้วันที่ปัจจุบัน (ในรูปแบบ string YYYY-MM-DD)
+        today_datetime = datetime.now(THAI_TZ)
+        today_str = today_datetime.strftime("%Y-%m-%d")
+        
+        print(f"📅 Today is: {today_str}")
+        print(f"{'='*60}\n")
+        
+        days_read_set = set()
+        days_remaining_set = set()
+        unique_subjects = set()
+        
+        today_study_info = None
+        total_minutes = 0
 
-        for item in study_plan:
-            # (ส่วนนับ วันที่อ่าน/เหลือ/วันนี้)
-            item_date_str = item.get("date")
-            if item_date_str:
-                try:
-                    item_date = datetime.strptime(item_date_str, '%Y-%m-%d').date()
-                    if item_date < today:
-                        days_read += 1
-                    elif item_date > today:
-                        days_remaining += 1
-                    else: # วันนี้
-                        days_remaining += 1 # นับวันนี้เป็นวันที่เหลือ
-                        today_study = {
-                            "subject": item.get("subject", "N/A"),
-                            "time": item.get("startTime", "N/A")
-                        }
-                except ValueError:
-                    print(f"ข้ามวันที่ผิดรูปแบบ: {item_date_str}")
+        for idx, sess in enumerate(sessions, 1):
+            # 1. เก็บชื่อวิชา (ไม่นับ Free Slot)
+            subj = sess.get("subject")
+            if subj and subj != "Free Slot":
+                unique_subjects.add(subj)
+
+            # 2. จัดการวันที่
+            raw_date = sess.get("date")
+            if not raw_date: 
+                print(f"   ⚠️ Session {idx}: Missing date - {sess}")
+                continue
+
+            # แปลงเป็น string YYYY-MM-DD
+            if isinstance(raw_date, str):
+                date_str = raw_date.split("T")[0]
+            elif isinstance(raw_date, datetime):
+                date_str = raw_date.strftime("%Y-%m-%d")
+            else:
+                print(f"   ⚠️ Session {idx}: Unknown date format - {type(raw_date)}")
+                continue
             
-            # (ส่วนคำนวณเวลารวมของแผน)
-            start_time_str = item.get("startTime")
-            end_time_str = item.get("endTime")
+            print(f"Session {idx:2d}: {date_str} | {subj:20s} | {sess.get('startTime', 'N/A')} - {sess.get('endTime', 'N/A')}")
 
-            if start_time_str and end_time_str:
+            # 3. แยกประเภทวัน
+            if date_str < today_str:
+                days_read_set.add(date_str)
+                print(f"            → ✅ Past (counted as read)")
+            elif date_str > today_str:
+                days_remaining_set.add(date_str)
+                print(f"            → ⏰ Future (remaining)")
+            else:
+                # วันนี้พอดี
+                days_remaining_set.add(date_str)
+                print(f"            → 📍 TODAY (counted as remaining)")
+
+            # 4. หาข้อมูลวันนี้
+            if date_str == today_str:
+                if today_study_info is None or (today_study_info.get('subject') == 'Free Slot' and subj != 'Free Slot'):
+                    today_study_info = {
+                        "subject": subj or "Free Slot",
+                        "time": f"{sess.get('startTime', '')} - {sess.get('endTime', '')}"
+                    }
+                    print(f"            → 🎯 Set as today's study")
+
+            # 5. คำนวณเวลาอ่านหนังสือรวม
+            start, end = sess.get("startTime"), sess.get("endTime")
+            if start and end and subj != "Free Slot":
                 try:
-                    start_t = datetime.strptime(start_time_str, '%H:%M').time()
-                    end_t = datetime.strptime(end_time_str, '%H:%M').time()
-                    
-                    # ใช้วันที่ dummy เพื่อคำนวณ timedelta
-                    duration_delta = datetime.combine(date.min, end_t) - datetime.combine(date.min, start_t)
-                    
-                    duration_seconds = duration_delta.total_seconds()
-                    
-                    # ✅ [Enhancement] ถ้าระยะเวลาติดลบ (เช่น 22:00 - 01:00) ให้บวก 24 ชม.
-                    if duration_seconds < 0:
-                        duration_seconds += 86400  # 24 * 60 * 60
+                    fmt = "%H:%M"
+                    t1 = datetime.strptime(start, fmt)
+                    t2 = datetime.strptime(end, fmt)
+                    diff = (t2 - t1).total_seconds()
+                    if diff < 0: 
+                        diff += 86400
+                    minutes = diff / 60
+                    total_minutes += minutes
+                    print(f"            → ⏱️  Duration: {int(minutes)} minutes")
+                except Exception as e:
+                    print(f"            → ⚠️ Time parse error: {e}")
 
-                    total_duration_minutes += duration_seconds / 60
-                    
-                except ValueError:
-                    print(f"ข้ามเวลาผิดรูปแบบ: {start_time_str} or {end_time_str}")
-                    continue
+        print(f"\n{'='*60}")
+        print(f"📈 SUMMARY:")
+        print(f"   Days read (past):      {len(days_read_set)}")
+        print(f"   Days remaining (future+today): {len(days_remaining_set)}")
+        print(f"   Unique subjects:       {len(unique_subjects)} - {unique_subjects}")
+        print(f"   Total minutes:         {int(total_minutes)} min ({int(total_minutes/60)}h {int(total_minutes%60)}m)")
+        print(f"   Today's study:         {today_study_info}")
+        print(f"{'='*60}\n")
 
-        # 5. สร้าง object ที่จะส่งกลับ (ต้องตรงกับที่ Frontend คาดหวัง)
-        summary = {
-            "days_read": days_read,
-            "days_remaining": days_remaining,
-            "subject_count": total_subjects, # <-- ใช้ค่าที่แก้ไขแล้ว
-            "today_study": today_study,
-            "total_duration_minutes": total_duration_minutes 
+        result = {
+            "days_read": len(days_read_set),
+            "days_remaining": len(days_remaining_set),
+            "subject_count": len(unique_subjects),
+            "total_duration_minutes": total_minutes,
+            "today_study": today_study_info
         }
-        return jsonify(summary)
+        
+        return jsonify(result), 200
 
-    except InvalidId:
-        return jsonify({"error": "รูปแบบ ID ของแผนไม่ถูกต้อง"}), 400
     except Exception as e:
-        print(f"เกิดข้อผิดพลาดใน /study_summary/<plan_id>: {e}")
+        print(f"❌ Summary Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500

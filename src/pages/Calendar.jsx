@@ -1,311 +1,324 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Sidebar from "../components/Sidebar";
-import { useNavigate } from 'react-router-dom'; // [1] เพิ่ม import useNavigate
-import { ChevronLeftIcon, ChevronRightIcon, BookOpenIcon, ClockIcon } from '@heroicons/react/24/solid';
+import { useNavigate } from 'react-router-dom';
+import { 
+    ChevronLeftIcon, 
+    ChevronRightIcon, 
+    CalendarDaysIcon,
+    CheckCircleIcon,
+    ClockIcon,
+    BookOpenIcon
+} from '@heroicons/react/24/outline';
 
-// --- Helper Functions (เหมือนเดิม) ---
-const getDaysInMonth = (year, month) => {
-    const date = new Date(year, month, 1);
+// --- Helper Functions ---
+const formatDateKey = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getCalendarDays = (currentDate) => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
     const days = [];
-    while (date.getMonth() === month) {
-        days.push(new Date(date));
-        date.setDate(date.getDate() + 1);
+    
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+
+    const startDayIndex = firstDayOfMonth.getDay(); 
+    for (let i = 0; i < startDayIndex; i++) {
+        days.push({ date: null, isCurrentMonth: false });
+    }
+
+    for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
+        days.push({ date: new Date(year, month, i), isCurrentMonth: true });
     }
     return days;
 };
 
-const getMonthStartDay = (year, month) => {
-    return new Date(year, month, 1).getDay();
-};
-
-const getLocalDateString = (dateObj) => {
-    const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
 export default function Calendar() {
     const [currentDate, setCurrentDate] = useState(new Date()); 
-    const navigate = useNavigate(); // [2] ประกาศตัวแปร navigate
+    const navigate = useNavigate();
 
-    // --- State ---
     const [planList, setPlanList] = useState([]); 
-    const [selectedPlanId, setSelectedPlanId] = useState(""); 
+    const [selectedPlanId, setSelectedPlanId] = useState(localStorage.getItem("selectedPlanId") || ""); 
     const [planDetails, setPlanDetails] = useState(null); 
-    
     const [isLoadingList, setIsLoadingList] = useState(true);
-    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-    const [error, setError] = useState(null);
 
-    // [3] ลบ State ของ Modal ออกไปเลย (ไม่ต้องใช้แล้ว)
-
-    // 1. Fetch List
+    // Save Selection
+    // 2. Fetch Plan List
     useEffect(() => {
         const fetchPlanList = async () => {
             setIsLoadingList(true);
-            setError(null);
             try {
-                const response = await axios.get(
-                    "http://localhost:5000/calender/api/exam-plans/", 
-                    { withCredentials: true }
-                );
-                
+                const response = await axios.get("http://localhost:5000/calender/api/exam-plans/", { withCredentials: true });
                 if (Array.isArray(response.data) && response.data.length > 0) {
                     setPlanList(response.data);
-                    setSelectedPlanId(response.data[0]._id);
-                    if (response.data[0].prep_start_date) {
-                        const startDate = new Date(response.data[0].prep_start_date);
-                        setCurrentDate(new Date(startDate.getFullYear(), startDate.getMonth(), 1));
-                    }
+
+                    // --- แก้ไขจุดนี้ ---
+                    // เปลี่ยนจาก: if (!selectedPlanId) setSelectedPlanId(...)
+                    // เป็นแบบนี้แทน:
+                    setSelectedPlanId(prevId => {
+                        // ถ้า prevId (ค่าเดิม) ไม่มี ให้ใช้ตัวแรกจาก API
+                        if (!prevId) return response.data[0]._id;
+                        // ถ้ามีค่าอยู่แล้ว ให้ใช้ค่าเดิม (ไม่ทับ)
+                        return prevId;
+                    });
+                    // ------------------
+
                 } else {
                     setPlanList([]);
-                    setError("ไม่พบแผนการสอบ");
+                    // setError("ไม่พบแผนการสอบ");
                 }
             } catch (err) {
-                console.error("Error fetching list:", err);
-                setPlanList([]);
-                setError(err.response?.data?.message || "ไม่สามารถดึงรายชื่อแผนได้");
+                console.error(err);
+                // setError("ไม่สามารถดึงรายชื่อแผนได้");
             } finally {
                 setIsLoadingList(false);
             }
         };
         fetchPlanList();
-    }, []);
-
-    // 2. Fetch Details
+    }, []); // หายเหลืองแน่นอน เพราะเราเอา selectedPlanId ออกจาก Logic ข้างในแล้ว
+    // Fetch Details
     useEffect(() => {
-        if (!selectedPlanId) {
-            setPlanDetails(null);
-            return;
-        }
+        if (!selectedPlanId) return;
         const fetchPlanDetails = async () => {
-            setIsLoadingDetails(true);
             try {
-                const response = await axios.get(
-                    `http://localhost:5000/calender/api/exam-plan/${selectedPlanId}`,
-                    { withCredentials: true }
-                );
+                const response = await axios.get(`http://localhost:5000/calender/api/exam-plan/${selectedPlanId}`, { withCredentials: true });
                 setPlanDetails(response.data);
-                setError(null);
-                
-                if (response.data.prep_start_date) {
-                    const startDate = new Date(response.data.prep_start_date);
-                    setCurrentDate(new Date(startDate.getFullYear(), startDate.getMonth(), 1));
-                } else if (response.data.generated_schedule?.length > 0) {
-                    const firstSlot = response.data.generated_schedule[0];
-                    const [year, month] = firstSlot.date.split('-');
-                    setCurrentDate(new Date(parseInt(year), parseInt(month) - 1, 1));
-                } else if (response.data.study_plan?.length > 0) {
-                    const firstSlot = response.data.study_plan[0];
-                    const [year, month] = firstSlot.date.split('-');
-                    setCurrentDate(new Date(parseInt(year), parseInt(month) - 1, 1));
-                }
             } catch (err) {
-                console.error("Error fetching details:", err);
-                setPlanDetails(null);
-                setError(err.response?.data?.message || "ไม่สามารถดึงรายละเอียดแผนได้");
-            } finally {
-                setIsLoadingDetails(false);
+                console.error(err);
             }
         };
         fetchPlanDetails();
-    }, [selectedPlanId]); 
+    }, [selectedPlanId]);
 
-    // UseMemos
+    // Data Processing
     const scheduleMap = useMemo(() => {
-        const newMap = new Map();
-        if (!planDetails) return newMap;
+        const map = new Map();
+        if (!planDetails) return map;
         const sessions = planDetails.study_plan || planDetails.generated_schedule || [];
         
         sessions.forEach(slot => {
             if (!slot.date) return;
-            const dateKey = slot.date; 
-            const existingSlots = newMap.get(dateKey) || [];
-            newMap.set(dateKey, [...existingSlots, slot]);
+            const dateKey = formatDateKey(slot.date);
+            const existing = map.get(dateKey) || [];
+            map.set(dateKey, [...existing, { ...slot, type: 'study' }]);
         });
 
         if (planDetails.exam_date) {
-            const examDateKey = planDetails.exam_date;
-            const examSlot = {
-                subject: `🎯 สอบ: ${planDetails.exam_title || 'ไม่ระบุชื่อ'}`,
-                isExam: true,
-                startTime: '',
-                endTime: ''
-            };
-            const existing = newMap.get(examDateKey) || [];
-            newMap.set(examDateKey, [examSlot, ...existing]); 
+            const examDateKey = formatDateKey(planDetails.exam_date);
+            const examSlot = { subject: planDetails.exam_title || 'Exam Day', type: 'exam', status: 'urgent' };
+            const existing = map.get(examDateKey) || [];
+            map.set(examDateKey, [examSlot, ...existing]); 
         }
-        return newMap;
+        return map;
     }, [planDetails]);
 
-    const calendarGrid = useMemo(() => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const daysInMonth = getDaysInMonth(year, month);
-        const startDay = getMonthStartDay(year, month);
-        const grid = [];
-        for (let i = 0; i < startDay; i++) grid.push({ date: null, isCurrentMonth: false });
-        for (const day of daysInMonth) grid.push({ date: day, isCurrentMonth: true });
-        return grid;
-    }, [currentDate]);
-
-    const goToNextMonth = () => setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-    const goToPrevMonth = () => setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-    const dayHeaders = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+    const calendarGrid = useMemo(() => getCalendarDays(currentDate), [currentDate]);
 
     const stats = useMemo(() => {
-        if (!planDetails) return { total: 0, completed: 0, pending: 0 };
-        const sessions = planDetails.study_plan || planDetails.generated_schedule || [];
-        return {
-            total: sessions.length,
-            completed: sessions.filter(s => s.status === 'completed').length,
-            pending: sessions.filter(s => s.status === 'pending').length
-        };
+        if (!planDetails) return { total: 0, completed: 0, pending: 0, progress: 0 };
+        const sessions = planDetails.study_plan || [];
+        const realSessions = sessions.filter(s => s.status !== 'rescheduled');
+        const total = realSessions.length;
+        const completed = realSessions.filter(s => s.status === 'completed').length;
+        const pending = realSessions.filter(s => s.status === 'pending').length;
+        const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
+        return { total, completed, pending, progress };
     }, [planDetails]);
 
-    // [4] แก้ไขฟังก์ชันคลิก: เปลี่ยนเป็น navigate ไปหน้าใหม่
-    const handleDayClick = (dateObj) => {
-        if (!dateObj) return;
-        const dateString = getLocalDateString(dateObj);
-        // ลิงก์ไปที่ /schedule/day/2026-01-16 (ตามที่เราตั้งใน App.js)
-        navigate(`/schedule/day/${dateString}`);
+    const changeMonth = (offset) => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
     };
 
     return (
-        <div className="flex bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen font-sans">
+        <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
             <Sidebar />
+            
+            <div className="flex-1 flex flex-col h-full overflow-y-auto custom-page-scrollbar">
+                <div className="max-w-[1600px] w-full mx-auto p-6 lg:p-10 space-y-8">
+                    
+                    {/* Header */}
+                    <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                        <div>
+                            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                                <CalendarDaysIcon className="w-10 h-10 text-indigo-600" />
+                                ตารางอ่านหนังสือ
+                            </h1>
+                            <p className="text-lg text-slate-500 mt-2 font-medium">
+                                จัดการเวลาของคุณให้คุ้มค่าที่สุด 🚀
+                            </p>
+                        </div>
 
-            <div className="flex-1 p-4 sm:p-8">
-                <div className="max-w-7xl mx-auto">
-                    {/* Header Card */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-                                    📅 ปฏิทินการอ่านหนังสือ
-                                </h1>
-                                <div className="flex flex-wrap gap-3 text-sm">
-                                    <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                                        <BookOpenIcon className="w-4 h-4" /> <span>ทั้งหมด: {stats.total}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                                        <span>✓ เสร็จแล้ว: {stats.completed}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
-                                        <ClockIcon className="w-4 h-4" /> <span>รอทำ: {stats.pending}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="w-full md:w-72">
+                        <div className="relative w-full md:w-80">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">เลือกแผนการสอบ</label>
+                            <div className="relative">
                                 <select
                                     value={selectedPlanId}
                                     onChange={(e) => setSelectedPlanId(e.target.value)}
                                     disabled={isLoadingList}
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm disabled:opacity-50"
+                                    className="w-full appearance-none bg-white border border-slate-200 text-slate-800 text-lg py-3 pl-5 pr-12 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold transition-all hover:border-indigo-300 cursor-pointer"
                                 >
-                                    {isLoadingList ? <option>กำลังโหลด...</option> : planList.length === 0 ? <option>ไม่พบแผนการสอบ</option> : planList.map(plan => <option key={plan._id} value={plan._id}>📚 {plan.exam_title || 'ไม่ระบุชื่อ'}</option>)}
+                                    {isLoadingList ? <option>กำลังโหลด...</option> : 
+                                     planList.map(plan => <option key={plan._id} value={plan._id}>{plan.exam_title}</option>)}
                                 </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                    <svg className="h-5 w-5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Stats Dashboard - Big & Bold */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                        <StatCard 
+                            title="หัวข้อทั้งหมด" value={stats.total} 
+                            icon={<BookOpenIcon className="w-8 h-8 text-white"/>} 
+                            gradient="bg-gradient-to-br from-indigo-500 to-indigo-600"
+                        />
+                        <StatCard 
+                            title="อ่านจบแล้ว" value={stats.completed} 
+                            icon={<CheckCircleIcon className="w-8 h-8 text-white"/>} 
+                            gradient="bg-gradient-to-br from-emerald-400 to-emerald-600"
+                        />
+                        <StatCard 
+                            title="รออ่าน" value={stats.pending} 
+                            icon={<ClockIcon className="w-8 h-8 text-white"/>} 
+                            gradient="bg-gradient-to-br from-amber-400 to-orange-500"
+                        />
+                        
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-lg flex flex-col justify-center gap-2">
+                            <div className="flex justify-between items-end">
+                                <span className="text-base font-semibold text-slate-500">ความคืบหน้า</span>
+                                <span className="text-3xl font-black text-slate-800">{stats.progress}%</span>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden mt-1">
+                                <div 
+                                    className="bg-gradient-to-r from-indigo-500 to-purple-600 h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(99,102,241,0.5)]" 
+                                    style={{ width: `${stats.progress}%` }}
+                                ></div>
                             </div>
                         </div>
                     </div>
 
-                    {error && <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700">{error}</div>}
-
-                    {/* Calendar Card */}
-                    <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                        <div className="flex items-center justify-between mb-6 bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-xl text-white shadow-lg">
-                            <button onClick={goToPrevMonth} className="p-2 rounded-lg hover:bg-white/20 transition-all"><ChevronLeftIcon className="w-6 h-6" /></button>
-                            <h2 className="text-2xl font-bold">{currentDate.toLocaleString('th-TH', { month: 'long', year: 'numeric' })}</h2>
-                            <button onClick={goToNextMonth} className="p-2 rounded-lg hover:bg-white/20 transition-all"><ChevronRightIcon className="w-6 h-6" /></button>
+                    {/* Calendar Wrapper */}
+                    <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden">
+                        {/* Calendar Header */}
+                        <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
+                            <h2 className="text-3xl font-bold text-slate-800 tracking-tight">
+                                {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
+                            </h2>
+                            <div className="flex gap-3">
+                                <button onClick={() => changeMonth(-1)} className="p-3 hover:bg-slate-100 rounded-xl text-slate-600 transition-all border border-slate-200 hover:border-slate-300">
+                                    <ChevronLeftIcon className="w-6 h-6" />
+                                </button>
+                                <button onClick={() => changeMonth(1)} className="p-3 hover:bg-slate-100 rounded-xl text-slate-600 transition-all border border-slate-200 hover:border-slate-300">
+                                    <ChevronRightIcon className="w-6 h-6" />
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-7 gap-2 mb-4">
-                            {dayHeaders.map((day, idx) => (
-                                <div key={day} className={`text-center py-2 font-semibold text-sm ${idx === 0 || idx === 6 ? 'text-red-500' : 'text-gray-600'}`}>{day}</div>
+                        {/* Weekday Header */}
+                        <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/80">
+                            {['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'].map((d, i) => (
+                                <div key={d} className={`py-4 text-center text-base font-bold tracking-wide ${i===0 || i===6 ? 'text-rose-500' : 'text-slate-500'}`}>
+                                    {d}
+                                </div>
                             ))}
                         </div>
 
-                        {isLoadingDetails ? (
-                            <div className="h-96 flex items-center justify-center">
-                                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-7 gap-2 lg:gap-3">
-                                {calendarGrid.map((day, index) => {
-                                    if (!day.isCurrentMonth) {
-                                        return <div key={`empty-${index}`} className="aspect-square rounded-xl bg-gray-50/50"></div>;
-                                    }
+                        {/* Calendar Grid */}
+                        <div className="grid grid-cols-7 bg-slate-200 gap-px">
+                            {calendarGrid.map((item, index) => {
+                                if (!item.isCurrentMonth) return <div key={`empty-${index}`} className="bg-gray-50/50 min-h-[140px]" />;
 
-                                    const dateString = getLocalDateString(day.date);
-                                    const daySchedule = scheduleMap.get(dateString);
-                                    const isToday = dateString === getLocalDateString(new Date());
-                                    const hasSchedule = daySchedule && daySchedule.length > 0;
-                                    const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
+                                const dateStr = formatDateKey(item.date);
+                                const dayEvents = scheduleMap.get(dateStr) || [];
+                                const isToday = dateStr === formatDateKey(new Date());
+                                const isWeekend = item.date.getDay() === 0 || item.date.getDay() === 6;
 
-                                    return (
-                                        <div
-                                            key={`day-${dateString}`}
-                                            // [5] เรียกใช้ handleDayClick แบบใหม่
-                                            onClick={() => handleDayClick(day.date)} 
-                                            className={`aspect-square rounded-xl border-2 p-2 flex flex-col transition-all hover:shadow-lg hover:scale-105 overflow-hidden relative cursor-pointer ${ 
-                                                isToday 
-                                                    ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-300 shadow-lg' 
-                                                    : hasSchedule
-                                                    ? 'bg-white border-blue-200 hover:border-blue-400'
-                                                    : 'bg-gray-50/50 border-gray-200 hover:border-gray-300'
-                                            }`}
-                                        >
-                                            <div className="flex justify-between items-start mb-1">
-                                                <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all ${
-                                                    isToday ? 'bg-blue-600 text-white shadow-lg scale-110' : isWeekend ? 'text-red-500' : 'text-gray-700'
-                                                }`}>
-                                                    {day.date.getDate()}
+                                return (
+                                    <div 
+                                        key={dateStr}
+                                        onClick={() => item.date && navigate(`/schedule/day/${formatDateKey(item.date)}`)}
+                                        className={`
+                                            bg-white min-h-[140px] p-3 flex flex-col gap-2 transition-all cursor-pointer group
+                                            hover:bg-indigo-50/30 hover:shadow-inner relative
+                                        `}
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <span className={`
+                                                w-9 h-9 flex items-center justify-center rounded-xl text-lg font-bold transition-all
+                                                ${isToday 
+                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-110' 
+                                                    : isWeekend ? 'text-rose-500 group-hover:bg-rose-50' : 'text-slate-700 group-hover:bg-slate-100'}
+                                            `}>
+                                                {item.date.getDate()}
+                                            </span>
+                                            {dayEvents.length > 0 && (
+                                                <span className="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">
+                                                    {dayEvents.length}
                                                 </span>
-                                                {hasSchedule && !isToday && <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>}
-                                            </div>
-
-                                            <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pointer-events-none">
-                                                {daySchedule && daySchedule.length > 0 ? (
-                                                    daySchedule.map((slot, i) => (
-                                                        <div 
-                                                            key={i} 
-                                                            className={`text-[10px] p-1.5 rounded-md truncate font-medium ${
-                                                                slot.isExam ? 'bg-red-500 text-white' : 'bg-blue-100 text-blue-800'
-                                                            }`}
-                                                            style={!slot.isExam ? { backgroundColor: `${slot.color}20`, color: '#1e3a8a' } : {}}
-                                                        >
-                                                            {slot.subject}
-                                                        </div>
-                                                    ))
-                                                ) : null}
-                                            </div>
+                                            )}
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                        
-                         <div className="mt-6 pt-6 border-t border-gray-200">
-                            <div className="flex flex-wrap gap-4 justify-center text-sm">
-                                <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-blue-500"></div><span className="text-gray-600">วันที่มีตารางอ่าน</span></div>
-                                <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-gradient-to-r from-red-500 to-pink-500"></div><span className="text-gray-600">วันสอบ</span></div>
-                                <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full bg-blue-600 ring-2 ring-blue-300"></div><span className="text-gray-600">วันนี้</span></div>
-                            </div>
+
+                                        <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto custom-scrollbar max-h-[100px] pr-1">
+                                            {dayEvents.map((evt, i) => {
+                                                const baseStyle = "px-3 py-1.5 rounded-lg text-sm font-medium truncate shadow-sm border-l-4 transition-transform hover:scale-[1.02]";
+                                                let variantStyle = "bg-indigo-50 text-indigo-700 border-indigo-500";
+                                                
+                                                if (evt.type === 'exam') variantStyle = "bg-rose-50 text-rose-700 border-rose-500 font-bold ring-1 ring-rose-100";
+                                                else if (evt.status === 'rescheduled') variantStyle = "bg-gray-100 text-gray-400 border-gray-400 line-through decoration-gray-400";
+                                                else if (evt.status === 'completed') variantStyle = "bg-emerald-50 text-emerald-700 border-emerald-500 opacity-75";
+
+                                                return (
+                                                    <div key={i} className={`${baseStyle} ${variantStyle}`} title={evt.subject}>
+                                                        {evt.type === 'exam' && '🎯 '}{evt.subject}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* [6] ลบ <DayDetailModal /> ทิ้งไปแล้ว */}
-
             <style jsx>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 3px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+                .custom-page-scrollbar::-webkit-scrollbar { width: 8px; }
+                .custom-page-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+                .custom-page-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
             `}</style>
+        </div>
+    );
+}
+
+// Stats Card Component Design
+function StatCard({ title, value, icon, gradient }) {
+    return (
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-lg flex items-center justify-between relative overflow-hidden group">
+            {/* Background Decor */}
+            <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 blur-xl ${gradient}`}></div>
+            
+            <div className="relative z-10">
+                <p className="text-base font-semibold text-slate-500 mb-1">{title}</p>
+                <h3 className="text-4xl font-extrabold text-slate-800 tracking-tight group-hover:scale-105 transition-transform origin-left">
+                    {value}
+                </h3>
+            </div>
+            
+            <div className={`${gradient} p-4 rounded-2xl shadow-lg transform group-hover:rotate-12 transition-transform duration-300`}>
+                {icon}
+            </div>
         </div>
     );
 }

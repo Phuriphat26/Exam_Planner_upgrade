@@ -3,36 +3,30 @@ from flask_cors import CORS
 import secrets 
 import math
 import random 
+import uuid
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from datetime import datetime, date, timedelta
-import os
-import traceback 
 from collections import Counter 
-import pytz 
+import pytz
+import traceback
 
-# --- 1. Blueprint Setup ---
 calender_bp = Blueprint('calender', __name__, url_prefix='/calender')
+CORS(calender_bp, supports_credentials=True, origins=["http://localhost:5173"])
 
-CORS(calender_bp, 
-     origins=["http://localhost:5173"], 
-     supports_credentials=True,       
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"] 
-)
-
-# --- 2. Database Connection ---
-client = MongoClient(os.getenv("MONGODB_URI", "mongodb://localhost:27017/"))
+# --- Database Connection ---
+client = MongoClient('mongodb://localhost:27017/')
 db = client['mydatabase']
 
 subjects_collection = db["subject"]
 exam_plans_collection = db["exam_plans"]      
 study_sessions_collection = db["study_sessions"] 
 
-# [3] ตั้งค่า Timezone
+# ตั้งค่า Timezone
 THAI_TZ = pytz.timezone('Asia/Bangkok')
 
-# --- 3. Helper Functions ---
+# --- Helper Functions ---
 
 def time_to_minutes(time_str):
     try:
@@ -46,12 +40,11 @@ def minutes_to_time(total_minutes):
     minutes = total_minutes % 60
     return f"{hours:02d}:{minutes:02d}"
 
-# [UPGRADE] Algorithm จัดตารางแบบ Smart Interleaving 
+# Algorithm จัดตาราง
 def generate_weighted_schedule(subjects, study_slots):
     if not subjects or not study_slots:
         return []
 
-    # 1. คำนวณ Priority
     total_priority = sum(max(1, s.get('priority', 1)) for s in subjects) 
     
     if total_priority == 0: 
@@ -60,7 +53,6 @@ def generate_weighted_schedule(subjects, study_slots):
     total_slots = len(study_slots)
     slots_per_point = total_slots / total_priority
     
-    # 2. สร้าง Task Pool
     task_pool = []
     sorted_subjects = sorted(subjects, key=lambda s: s.get('priority', 1), reverse=True)
 
@@ -72,7 +64,6 @@ def generate_weighted_schedule(subjects, study_slots):
         for _ in range(count):
             task_pool.append(s)
 
-    # เติมส่วนที่เหลือ (Remainder)
     remainder = total_slots - allocated_count
     idx = 0
     while remainder > 0:
@@ -81,16 +72,13 @@ def generate_weighted_schedule(subjects, study_slots):
         remainder -= 1
         idx += 1
 
-    # 3. สลับลำดับใน Pool 
     random.shuffle(task_pool)
 
-    # 4. หยอดลงตาราง (Distribution)
     final_schedule = []
     last_subject_name = None
 
     for i in range(total_slots):
         if not task_pool:
-            # กรณีเหลือ Slot ว่าง
             final_schedule.append({
                 **study_slots[i],
                 'subject': 'Free Slot',
@@ -99,7 +87,6 @@ def generate_weighted_schedule(subjects, study_slots):
             })
             continue
 
-        # Anti-clustering logic
         selected_idx = 0
         if len(task_pool) > 1 and task_pool[0]['name'] == last_subject_name:
             for k in range(1, min(5, len(task_pool))): 
@@ -120,14 +107,13 @@ def generate_weighted_schedule(subjects, study_slots):
 
     return final_schedule
 
-# --- 4. Routes ---
+# --- Routes ---
 
 @calender_bp.route("/api/schedule", methods=["GET"])
 def get_all_schedule():
     if "user_id" not in session: return jsonify({"message": "Unauthorized"}), 401
     try:
         user_id = ObjectId(session["user_id"])
-        
         sessions = list(study_sessions_collection.find({"user_id": user_id}))
         
         for s in sessions:
@@ -135,6 +121,13 @@ def get_all_schedule():
             s["exam_id"] = str(s["exam_id"])
             s["user_id"] = str(s["user_id"])
             
+            # แปลงวันที่เป็น String ป้องกันจอขาว
+            if "date" in s:
+                if isinstance(s["date"], (datetime, date)):
+                    s["date"] = s["date"].strftime("%Y-%m-%d")
+                else:
+                    s["date"] = str(s["date"]).split("T")[0]
+
         return jsonify(sessions), 200
     except Exception as e:
         return jsonify({"message": "Error fetching schedule", "error": str(e)}), 500
@@ -148,13 +141,10 @@ def get_user_subjects():
         subjects_list = []
         
         for doc in cursor:
-            # [FIX] แปลงวันที่เป็น String เพื่อป้องกัน Error หน้าขาว
             exam_date_str = "-"
             if "exam_date" in doc and doc["exam_date"]:
                 if isinstance(doc["exam_date"], (datetime, date)):
                     exam_date_str = doc["exam_date"].strftime("%Y-%m-%d")
-                elif isinstance(doc["exam_date"], str):
-                    exam_date_str = doc["exam_date"]
                 else:
                     exam_date_str = str(doc["exam_date"])
 
@@ -163,7 +153,7 @@ def get_user_subjects():
                 "title": doc.get("title", "No Title"), 
                 "priority": doc.get("priority", 1),
                 "color": doc.get("color", "#3B82F6"),
-                "exam_date": exam_date_str, # ส่งค่าที่แปลงแล้ว
+                "exam_date": exam_date_str,
                 "topics": doc.get("topics", [])
             })
             
@@ -208,7 +198,7 @@ def add_exam_plan():
             "subjects": exam_subjects, 
             "exam_date": data["examDate"],
             "study_plan_raw": study_plan_slots_raw,
-            "createdAt": datetime.now(THAI_TZ), # ใช้เวลาไทย
+            "createdAt": datetime.now(THAI_TZ),
             "status": "active"
         }
         plan_result = exam_plans_collection.insert_one(new_plan)
@@ -244,7 +234,6 @@ def get_exam_plans():
             plan["_id"] = str(plan["_id"])
             plan["user_id"] = str(plan["user_id"])
             
-            # [FIX] แปลงวันที่ exam_date ใน List แผน
             if "exam_date" in plan and plan["exam_date"]:
                 if isinstance(plan["exam_date"], (datetime, date)):
                     plan["exam_date"] = plan["exam_date"].strftime("%Y-%m-%d")
@@ -265,7 +254,6 @@ def get_single_exam_plan(plan_id):
         plan = exam_plans_collection.find_one({"_id": plan_oid, "user_id": user_id})
         if not plan: return jsonify({"message": "Not found"}), 404
 
-        # [FIX] แปลงวันที่ในรายละเอียดแผน
         if "exam_date" in plan and plan["exam_date"]:
              if isinstance(plan["exam_date"], (datetime, date)):
                 plan["exam_date"] = plan["exam_date"].strftime("%Y-%m-%d")
@@ -321,7 +309,7 @@ def update_plan_progress(plan_id):
         print(f"[ERROR] update_plan_progress: {e}")
         return jsonify({"message": "Error updating progress"}), 500
 
-# [FIX] Reschedule Logic ที่ถูกต้อง (แก้จากอันเดิมที่ผิด)
+# [FIXED] Reschedule Logic: ค้นหาครอบคลุม + ปักหมุด
 @calender_bp.route("/api/exam-plan/<plan_id>/reschedule", methods=["POST", "OPTIONS"])
 def reschedule_plan(plan_id):
     if request.method == 'OPTIONS': return make_response(jsonify({"message": "OK"}), 200)
@@ -330,104 +318,104 @@ def reschedule_plan(plan_id):
     try:
         user_id = ObjectId(session["user_id"])
         plan_oid = ObjectId(plan_id)
-        # ดึงวันที่จาก frontend (คาดว่าเป็น ISO format)
-        date_to_postpone_str = request.json.get('date').split('T')[0] 
+        
+        raw_date = request.json.get("date")
+        postpone_date_str = str(raw_date).split('T')[0].strip()
+        
+        try: postpone_date_dt = datetime.strptime(postpone_date_str, "%Y-%m-%d")
+        except: postpone_date_dt = datetime.now()
 
-        # 1. ค้นหาแผน
-        plan = exam_plans_collection.find_one({"_id": plan_oid, "user_id": user_id})
-        if not plan: return jsonify({"message": "Not found"}), 404
-
-        # 2. ค้นหา Slots ในอนาคตที่ยัง Status='pending' (ยังไม่ได้ทำ)
+        # 1. ค้นหาแบบครอบคลุม
         query = {
             "exam_id": plan_oid,
             "status": "pending",
-            "date": {"$gte": date_to_postpone_str} 
+            "$or": [
+                {"date": {"$gte": postpone_date_str}},
+                {"date": {"$gte": postpone_date_dt}}
+            ]
         }
         
-        affected_sessions = list(study_sessions_collection.find(query))
+        affected_sessions = list(study_sessions_collection.find(query).sort([("date", 1), ("startTime", 1)]))
         
         if not affected_sessions:
-            return jsonify({"message": "ไม่มีตารางที่ต้องเลื่อนในช่วงเวลานี้"}), 200
+            return jsonify({"message": "ไม่พบตารางเรียนที่จะเลื่อน", "rescheduled_count": 0}), 200
 
-        # 3. [สำคัญ] นับจำนวนวิชาที่เหลืออยู่จริงใน Slots เหล่านั้น
-        # เราจะไม่ Generate ใหม่จากศูนย์ แต่จะเอาของที่มีอยู่มาเกลี่ยใหม่
-        pending_subjects = [s['subject'] for s in affected_sessions if s['subject'] != 'Free Slot']
-        
-        # ดึงข้อมูลสีและ Priority เดิมจาก Plan หลักเพื่อมาสร้าง Object สำหรับ Algorithm
-        original_subjects_info = {s['name']: s for s in plan.get('subjects', [])}
-        
-        # สร้าง List วิชาสำหรับส่งเข้า Algorithm โดยอิงตามจำนวนที่เหลือจริง
-        subject_counts = Counter(pending_subjects)
-
-        task_pool = []
-        for subj_name, count in subject_counts.items():
-            info = original_subjects_info.get(subj_name, {'name': subj_name, 'color': '#EF4444', 'priority': 1})
-            for _ in range(count):
-                task_pool.append(info)
-        
-        # 4. เตรียม Slots เปล่า (Recycle เวลาเดิม)
-        slots_for_algo = []
+        # 2. เก็บวิชา
+        pending_subjects = []
         for s in affected_sessions:
-            slots_for_algo.append({
-                "date": s["date"],
-                "startTime": s["startTime"],
-                "endTime": s["endTime"]
-            })
-            
-        # 5. ทำการ Shuffle และ Assign ลง Slot (Logic คล้าย generate_weighted_schedule แต่ข้ามการคำนวณจำนวน)
-        random.shuffle(task_pool)
+            if s.get('subject') not in ['Free Slot', 'เลื่อนตาราง (Rescheduled)', '⛔ เลื่อนตาราง (Rescheduled)']:
+                pending_subjects.append(s['subject'])
+
+        plan = exam_plans_collection.find_one({"_id": plan_oid})
+        original_subjects_info = {s['name']: s for s in plan.get('subjects', [])}
+
+        flat_subjects_pool = []
+        for subj_name in pending_subjects:
+             info = original_subjects_info.get(subj_name, {'name': subj_name, 'color': '#EF4444'})
+             flat_subjects_pool.append({"name": subj_name, "color": info.get('color', '#EF4444')})
         
-        new_schedule = []
-        last_subject_name = None
+        random.shuffle(flat_subjects_pool)
+
+        # 3. สร้าง Slots ใหม่ (Shift +1)
+        new_sessions_to_insert = []
         
-        for i in range(len(slots_for_algo)):
-            if not task_pool:
-                # ถ้าวิชาหมด แต่เวลายังเหลือ (เป็น Free Slot)
-                new_schedule.append({
-                    **slots_for_algo[i],
-                    'subject': 'Free Slot',
-                    'status': 'pending',
-                    'slot_id': f"slot_{secrets.token_hex(8)}"
-                })
-                continue
-                
-            # Anti-clustering logic อย่างง่าย
-            selected_idx = 0
-            if len(task_pool) > 1 and task_pool[0]['name'] == last_subject_name:
-                 for k in range(1, min(5, len(task_pool))):
-                     if task_pool[k]['name'] != last_subject_name:
-                         selected_idx = k
-                         break
+        for s in affected_sessions:
+            if s.get('status') == 'rescheduled': continue
+
+            try:
+                raw_d = s["date"]
+                if isinstance(raw_d, str): d_obj = datetime.strptime(raw_d.split('T')[0], "%Y-%m-%d")
+                elif isinstance(raw_d, datetime): d_obj = raw_d
+                else: continue
+            except: continue
+
+            # *** SHIFT +1 DAY ***
+            new_date_str = (d_obj + timedelta(days=1)).strftime("%Y-%m-%d")
             
-            selected_task = task_pool.pop(selected_idx)
-            last_subject_name = selected_task['name']
-            
-            new_schedule.append({
-                **slots_for_algo[i],
-                'subject': selected_task['name'],
-                'color': selected_task.get('color', '#EF4444'),
-                'status': 'pending',
-                'slot_id': f"slot_{secrets.token_hex(8)}"
+            if flat_subjects_pool:
+                subj = flat_subjects_pool.pop(0)
+                s_name, s_color = subj['name'], subj['color']
+            else:
+                s_name, s_color = 'Free Slot', '#E5E7EB'
+
+            new_sessions_to_insert.append({
+                "exam_id": plan_oid, "user_id": user_id,
+                "subject": s_name, "date": new_date_str,
+                "startTime": s["startTime"], "endTime": s["endTime"],
+                "status": "pending", "isExam": False, "color": s_color,
+                "slot_id": f"slot_{secrets.token_hex(8)}"
             })
 
-        # 6. ลบอันเก่า และ บันทึกอันใหม่
+        # 4. ลบของเก่า
         delete_ids = [s["_id"] for s in affected_sessions]
         if delete_ids:
             study_sessions_collection.delete_many({"_id": {"$in": delete_ids}})
 
-        for slot in new_schedule:
-            slot["exam_id"] = plan_oid
-            slot["user_id"] = user_id
-        
-        if new_schedule:
-            study_sessions_collection.insert_many(new_schedule)
+        # 5. ใส่ของใหม่
+        if new_sessions_to_insert:
+            study_sessions_collection.insert_many(new_sessions_to_insert)
+
+        # 6. ปักหมุดวันเลื่อน
+        study_sessions_collection.delete_many({
+            "exam_id": plan_oid, "date": postpone_date_str, "status": "rescheduled"
+        })
+        marker_session = {
+            "exam_id": plan_oid, "user_id": user_id,
+            "subject": "⛔ เลื่อนตาราง", 
+            "date": postpone_date_str,
+            "startTime": "00:00", "endTime": "23:59",
+            "status": "rescheduled", 
+            "isExam": False, "color": "#9CA3AF",
+            "slot_id": f"marker_{secrets.token_hex(8)}"
+        }
+        study_sessions_collection.insert_one(marker_session)
 
         return jsonify({
             "message": "Reschedule successful",
-            "rescheduled_count": len(new_schedule)
+            "rescheduled_count": len(new_sessions_to_insert)
         }), 200
 
     except Exception as e:
-        print(f"[ERROR] reschedule: {e}")
+        print(f"[ERROR] {e}")
         print(traceback.format_exc())
-        return jsonify({"message": "Error rescheduling", "error": str(e)}), 500
+        return jsonify({"message": "Error", "error": str(e)}), 500
