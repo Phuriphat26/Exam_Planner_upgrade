@@ -1,7 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-// Import your page components
 import PreDetail from "./pages/PreDetail";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -17,7 +16,7 @@ import Timer from "./pages/Time";
 import ExamPlannerEdit from "./pages/ExamPlannerEdit";
 import Subjectedit from "./pages/Subjectedit";
 import Admin from "./pages/Admin";
-import DayDetailPage from "./pages/DayDetailPage"; // Import ถูกต้องแล้ว
+import DayDetailPage from "./pages/DayDetailPage"; 
 
 function App() {
   return (

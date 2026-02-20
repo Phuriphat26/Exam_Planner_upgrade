@@ -9,7 +9,7 @@ export default function CoursePlannerEdit() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- Data Fetching Logic (useEffect) ---
+  
     useEffect(() => {
         const fetchSubjects = async () => {
             try {
@@ -25,13 +25,13 @@ export default function CoursePlannerEdit() {
                 const fetchedSubjects = rawData.map(item => ({
                     _id: item._id, 
                     title: item.title || '',
-                    subject_code: item.subject_code || item.subject || '', // รองรับทั้งชื่อใหม่และเก่า
+                    subject_code: item.subject_code || item.subject || '', 
                     credits: item.credits?.toString() || '0',
                     priority: item.priority || 2,
                     difficulty: item.difficulty || 3,
                     color: item.color || '#3B82F6',
                     exam_date: item.exam_date || '',
-                    // แปลง Topics Array กลับเป็น String เพื่อแสดงใน Textarea
+                   
                     rawTopics: item.topics 
                         ? item.topics.map(t => (typeof t === 'string' ? t : t.name)).join(', ')
                         : '',
@@ -54,7 +54,7 @@ export default function CoursePlannerEdit() {
         fetchSubjects();
     }, []);
 
-    // --- Handlers ---
+
     const handleSubjectChange = (index, e) => {
         const { name, value } = e.target;
         const list = [...subjects];
@@ -77,7 +77,6 @@ export default function CoursePlannerEdit() {
         const subjectsToUpdate = subjects.filter(sub => !sub.isDeleted && sub._id);
         const subjectsToDelete = subjects.filter(sub => sub.isDeleted && sub._id);
 
-        // --- Client-side validation ---
         for (const subject of subjectsToUpdate) {
             if (!subject.title.trim() || !subject.subject_code.trim()) {
                 alert(`กรุณากรอก "ชื่อวิชา" และ "รหัสวิชา" ให้ครบถ้วน (วิชาลำดับที่ ${subjects.indexOf(subject) + 1})`);
@@ -89,9 +88,9 @@ export default function CoursePlannerEdit() {
             }
         }
 
-        // --- Prepare Update Promises ---
+      
         const updatePromises = subjectsToUpdate.map(subject => {
-            // แปลง rawTopics กลับเป็น Array
+    
             const topicsArray = subject.rawTopics
                 ? subject.rawTopics.split(',').map(t => t.trim()).filter(t => t !== '')
                 : [];
@@ -109,7 +108,7 @@ export default function CoursePlannerEdit() {
             return axios.put(`http://localhost:5000/subject/${subject._id}`, payload, { withCredentials: true });
         });
 
-        // --- Prepare Delete Promises ---
+   
         const deletePromises = subjectsToDelete.map(subject => 
             axios.delete(`http://localhost:5000/subject/${subject._id}`, { withCredentials: true })
         );
@@ -117,7 +116,7 @@ export default function CoursePlannerEdit() {
         try {
             await Promise.all([...updatePromises, ...deletePromises]);
             alert("บันทึกการแก้ไขสำเร็จ!");
-            window.location.reload(); // Refresh เพื่อโหลดข้อมูลใหม่
+            window.location.reload();
         } catch (err) {
             console.error("Submission Error:", err);
             if (err.response && err.response.status === 401) {
@@ -128,7 +127,7 @@ export default function CoursePlannerEdit() {
         }
     };
 
-    // --- Render Logic ---
+ 
     if (isLoading) return <div className="flex min-h-screen items-center justify-center bg-gray-50 text-blue-600">กำลังโหลดข้อมูล...</div>;
     
     if (error) return (
@@ -178,7 +177,7 @@ export default function CoursePlannerEdit() {
                                     ${subject.isDeleted ? 'border-red-300 bg-red-50/50 opacity-60' : 'border-gray-200 hover:border-blue-300'}
                                 `}
                             >
-                                {/* Header Bar & Delete Button */}
+                              
                                 <div className="flex justify-between items-start mb-4 pb-4 border-b border-gray-100">
                                     <div className="flex items-center gap-3">
                                         <span className="bg-gray-100 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
@@ -207,7 +206,7 @@ export default function CoursePlannerEdit() {
                                 </div>
 
                                 <fieldset disabled={subject.isDeleted} className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                                    {/* Row 1: Basic Info */}
+                               
                                     <div className="md:col-span-5">
                                         <label className="block text-xs font-semibold text-gray-500 mb-1">ชื่อวิชา</label>
                                         <input
@@ -249,7 +248,7 @@ export default function CoursePlannerEdit() {
                                         />
                                     </div>
 
-                                    {/* Row 2: Details */}
+                         
                                     <div className="md:col-span-4">
                                         <label className="block text-xs font-semibold text-gray-500 mb-1">Priority (ความสำคัญ)</label>
                                         <select
@@ -279,7 +278,7 @@ export default function CoursePlannerEdit() {
                                         </select>
                                     </div>
 
-                                    {/* Row 3: Topics */}
+                           
                                     <div className="md:col-span-12">
                                         <label className="block text-xs font-semibold text-gray-500 mb-1">หัวข้อย่อย (คั่นด้วยจุลภาค)</label>
                                         <textarea
@@ -295,7 +294,7 @@ export default function CoursePlannerEdit() {
                             </div>
                         ))}
 
-                        {/* Sticky Action Bar */}
+             
                         <div className="sticky bottom-4 z-10 flex justify-end gap-4 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-gray-200 shadow-lg">
                             <button
                                 type="button"

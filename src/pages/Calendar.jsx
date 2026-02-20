@@ -11,7 +11,7 @@ import {
     BookOpenIcon
 } from '@heroicons/react/24/outline';
 
-// --- Helper Functions ---
+
 const formatDateKey = (date) => {
     if (!date) return '';
     const d = new Date(date);
@@ -49,8 +49,7 @@ export default function Calendar() {
     const [planDetails, setPlanDetails] = useState(null); 
     const [isLoadingList, setIsLoadingList] = useState(true);
 
-    // Save Selection
-    // 2. Fetch Plan List
+
     useEffect(() => {
         const fetchPlanList = async () => {
             setIsLoadingList(true);
@@ -59,31 +58,29 @@ export default function Calendar() {
                 if (Array.isArray(response.data) && response.data.length > 0) {
                     setPlanList(response.data);
 
-                    // --- แก้ไขจุดนี้ ---
-                    // เปลี่ยนจาก: if (!selectedPlanId) setSelectedPlanId(...)
-                    // เป็นแบบนี้แทน:
+          
                     setSelectedPlanId(prevId => {
-                        // ถ้า prevId (ค่าเดิม) ไม่มี ให้ใช้ตัวแรกจาก API
+                      
                         if (!prevId) return response.data[0]._id;
-                        // ถ้ามีค่าอยู่แล้ว ให้ใช้ค่าเดิม (ไม่ทับ)
+                      
                         return prevId;
                     });
-                    // ------------------
+                 
 
                 } else {
                     setPlanList([]);
-                    // setError("ไม่พบแผนการสอบ");
+                  
                 }
             } catch (err) {
                 console.error(err);
-                // setError("ไม่สามารถดึงรายชื่อแผนได้");
+               
             } finally {
                 setIsLoadingList(false);
             }
         };
         fetchPlanList();
-    }, []); // หายเหลืองแน่นอน เพราะเราเอา selectedPlanId ออกจาก Logic ข้างในแล้ว
-    // Fetch Details
+    }, []); 
+
     useEffect(() => {
         if (!selectedPlanId) return;
         const fetchPlanDetails = async () => {
@@ -174,7 +171,7 @@ export default function Calendar() {
                         </div>
                     </header>
 
-                    {/* Stats Dashboard - Big & Bold */}
+                   
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                         <StatCard 
                             title="หัวข้อทั้งหมด" value={stats.total} 
@@ -206,9 +203,9 @@ export default function Calendar() {
                         </div>
                     </div>
 
-                    {/* Calendar Wrapper */}
+               
                     <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden">
-                        {/* Calendar Header */}
+                    
                         <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
                             <h2 className="text-3xl font-bold text-slate-800 tracking-tight">
                                 {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
@@ -223,7 +220,7 @@ export default function Calendar() {
                             </div>
                         </div>
 
-                        {/* Weekday Header */}
+                      
                         <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/80">
                             {['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'].map((d, i) => (
                                 <div key={d} className={`py-4 text-center text-base font-bold tracking-wide ${i===0 || i===6 ? 'text-rose-500' : 'text-slate-500'}`}>
@@ -232,7 +229,7 @@ export default function Calendar() {
                             ))}
                         </div>
 
-                        {/* Calendar Grid */}
+                   
                         <div className="grid grid-cols-7 bg-slate-200 gap-px">
                             {calendarGrid.map((item, index) => {
                                 if (!item.isCurrentMonth) return <div key={`empty-${index}`} className="bg-gray-50/50 min-h-[140px]" />;
@@ -302,11 +299,11 @@ export default function Calendar() {
     );
 }
 
-// Stats Card Component Design
+
 function StatCard({ title, value, icon, gradient }) {
     return (
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-lg flex items-center justify-between relative overflow-hidden group">
-            {/* Background Decor */}
+           
             <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 blur-xl ${gradient}`}></div>
             
             <div className="relative z-10">

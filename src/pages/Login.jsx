@@ -22,8 +22,7 @@ export default function StudyPlannerLogin() {
       );
 
       if (res.data.success) {
-        // --- ⭐️ ส่วนสำคัญที่เพิ่มเข้ามา ⭐️ ---
-        // ถ้ามี user_id ส่งมา ให้เก็บลง localStorage
+     
         if (res.data.user_id) {
             localStorage.setItem('userId', res.data.user_id);
         }
@@ -43,7 +42,7 @@ export default function StudyPlannerLogin() {
 
     } catch (err) {
       console.error('Login error:', err);
-      // Backend (Flask) ส่ง 401 กลับมา axios จะเข้า catch block นี้
+
       if (err.response && err.response.data && err.response.data.message) {
           alert(err.response.data.message);
       } else {
@@ -58,7 +57,7 @@ export default function StudyPlannerLogin() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Brand Section */}
+
       <div className="w-1/2 bg-white flex flex-col items-center justify-center p-12">
         <div className="max-w-md text-center">
           <h1 className="text-5xl font-bold text-gray-800 mb-4">EXAM PLANNER</h1>
@@ -72,7 +71,7 @@ export default function StudyPlannerLogin() {
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
+ 
       <div className="w-1/2 flex items-center justify-center p-12 bg-gradient-to-br from-blue-100 via-purple-50 to-yellow-50">
         <div className="w-full max-w-md">
           <h2 className="text-3xl font-bold text-center mb-12">LOG IN</h2>

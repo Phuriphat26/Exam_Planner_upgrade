@@ -15,7 +15,7 @@ import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-// --- 1. Helper Functions ---
+
 const formatExamDateTime = (dateString) => {
     if (!dateString) return { date: "ไม่ระบุวันที่", time: "ไม่ระบุเวลา" };
     const date = new Date(dateString);
@@ -39,7 +39,7 @@ const isSameDay = (d1, d2) => {
     return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
 };
 
-// --- 2. Calendar Component (แก้ไขสีให้ตรงกัน) ---
+
 const CalendarView = ({ chapterDetails, examDate, completedChapters }) => {
     const getInitialDate = () => {
         if (chapterDetails && chapterDetails.length > 0 && chapterDetails[0].date) {
@@ -72,7 +72,7 @@ const CalendarView = ({ chapterDetails, examDate, completedChapters }) => {
     const days = getCalendarDays();
     const examDateObj = examDate ? new Date(examDate) : null;
 
-    // --- LOGIC เช็คสี (ปรับเป็น Red-300) ---
+
     const getDayStatus = (date) => {
         if (!date) return 'bg-transparent'; 
         
@@ -96,10 +96,10 @@ const CalendarView = ({ chapterDetails, examDate, completedChapters }) => {
                 return status === 'completed' || status === 'done';
             });
             
-            // ใช้สีเขียวอ่อน (Green-300) เมื่อเสร็จ
+           
             if (allCompleted) return 'bg-green-300 text-green-900 font-medium'; 
 
-            // ใช้สีแดงอ่อน (Red-300) แทนสีชมพู เพื่อให้ตรงกับกราฟ
+           
             return 'bg-red-300 text-red-900 font-medium'; 
         }
         
@@ -115,7 +115,7 @@ const CalendarView = ({ chapterDetails, examDate, completedChapters }) => {
         labels: ['อ่านแล้ว', 'ยังไม่อ่าน'],
         datasets: [{
             data: [completedCount, pendingCount], 
-            // ปรับสี Chart ให้ตรงกับปฏิทิน (Green-300 และ Red-300)
+           
             backgroundColor: ['#86efac', '#fca5a5'], 
             borderColor: ['#ffffff', '#ffffff'],
             borderWidth: 2,
@@ -147,17 +147,17 @@ const CalendarView = ({ chapterDetails, examDate, completedChapters }) => {
                         </div>
                     ))}
                 </div>
-                {/* Legend: แก้สีให้ตรงกับปฏิทิน */}
+              
                 <div className="flex justify-start gap-4 mt-6 flex-wrap">
                     <div className="flex items-center"><span className="h-4 w-4 bg-green-300 rounded mr-2"></span><span className="text-sm text-gray-600">อ่านแล้ว</span></div>
-                    {/* เปลี่ยนสีตัวอย่างเป็น Red-300 */}
+                   
                     <div className="flex items-center"><span className="h-4 w-4 bg-red-300 rounded mr-2"></span><span className="text-sm text-gray-600">ยังไม่อ่าน</span></div>
                     <div className="flex items-center"><span className="h-4 w-4 bg-gray-300 rounded mr-2"></span><span className="text-sm text-gray-600 line-through">เลื่อนแล้ว</span></div>
                     <div className="flex items-center"><span className="h-4 w-4 bg-yellow-300 rounded mr-2"></span><span className="text-sm text-gray-600">วันสอบ</span></div>
                 </div>
             </div>
             
-            {/* Chart Section */}
+       
             <div className="md:col-span-1 space-y-6">
                 <div className="bg-white p-6 rounded-2xl shadow-lg">
                     <h4 className="text-xl font-semibold text-gray-800 mb-4 text-center">ภาพรวมความคืบหน้า</h4>
@@ -172,7 +172,7 @@ const CalendarView = ({ chapterDetails, examDate, completedChapters }) => {
     );
 };
 
-// --- 3. Checklist Component (เหมือนเดิม) ---
+
 const ChecklistView = ({ 
     groupedChapters, 
     sortedDates, 
@@ -290,7 +290,7 @@ const ChecklistView = ({
     );
 };
 
-// --- 4. Main Component ---
+
 export default function ExamPlanDetail() {
     const { id } = useParams();
     const [plan, setPlan] = useState(null);
@@ -389,7 +389,7 @@ export default function ExamPlanDetail() {
 
     const { date: examDate, time: examTime } = formatExamDateTime(plan.exam_date);
 
-    // Group chapters by Date
+  
     const groupedChapters = chapterDetails.reduce((acc, chapter) => {
         const dateKey = chapter.date.split('T')[0]; 
         if (!acc[dateKey]) { acc[dateKey] = []; }

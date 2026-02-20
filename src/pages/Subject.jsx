@@ -6,17 +6,17 @@ import { useNavigate } from 'react-router-dom';
 export default function CoursePlannerAddNew() {
     const navigate = useNavigate();
 
-    // State สำหรับฟอร์ม (ปรับให้ตรงกับ Backend ใหม่)
+
     const [subjects, setSubjects] = useState([
         { 
             title: '', 
             subject_code: '', 
             credits: '', 
-            priority: 2,       // 1=Low, 2=Medium, 3=High
-            difficulty: 3,     // 1-5
-            exam_date: '',     // YYYY-MM-DD
-            color: '#3B82F6',  // Default Blue
-            rawTopics: ''      // รับค่าเป็น String (เช่น "บทที่ 1, บทที่ 2") แล้วค่อยแปลงเป็น Array
+            priority: 2,      
+            difficulty: 3,    
+            exam_date: '',     
+            color: '#3B82F6', 
+            rawTopics: ''     
         },
     ]);
 
@@ -24,7 +24,7 @@ export default function CoursePlannerAddNew() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- Fetching Logic (GET) ---
+  
     const fetchExistingSubjects = async () => {
         setLoading(true);
         setError(null);
@@ -50,7 +50,7 @@ export default function CoursePlannerAddNew() {
         fetchExistingSubjects();
     }, []);
 
-    // --- Handlers ---
+
     const handleSubjectChange = (index, e) => {
         const { name, value } = e.target;
         const list = [...subjects];
@@ -85,11 +85,11 @@ export default function CoursePlannerAddNew() {
         navigate('/course-planner/edit');
     };
 
-    // --- Submission Logic (POST) ---
+  
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // 1. Client-side Validation
+
         for (const sub of subjects) {
             if (!sub.title.trim() || !sub.subject_code.trim()) {
                 alert('กรุณากรอก "ชื่อวิชา" และ "รหัสวิชา" ให้ครบถ้วน');
@@ -101,10 +101,9 @@ export default function CoursePlannerAddNew() {
             }
         }
 
-        // 2. Prepare Payload (Map State -> Backend Schema)
+    
         const payload = subjects.map(sub => {
-            // แปลง rawTopics (String) -> Topics Array
-            // เช่น "Intro, Loop, Array" -> ["Intro", "Loop", "Array"]
+        
             const topicsArray = sub.rawTopics
                 ? sub.rawTopics.split(',').map(t => t.trim()).filter(t => t !== '')
                 : [];
@@ -115,13 +114,13 @@ export default function CoursePlannerAddNew() {
                 credits: parseInt(sub.credits, 10),
                 priority: parseInt(sub.priority, 10),
                 difficulty: parseInt(sub.difficulty, 10),
-                exam_date: sub.exam_date || null, // ส่ง null ถ้าไม่กรอก
+                exam_date: sub.exam_date || null, 
                 color: sub.color,
                 topics: topicsArray
             };
         });
 
-        // 3. Send API
+  
         try {
             const res = await axios.post(
                 "http://localhost:5000/subject/",
@@ -147,7 +146,7 @@ export default function CoursePlannerAddNew() {
                 <div className="max-w-6xl mx-auto">
                     <h1 className="text-3xl font-bold mb-6 text-gray-800">จัดการรายวิชา</h1>
 
-                    {/* --- Display Existing Subjects --- */}
+              
                     <div className="mb-8 p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-semibold text-gray-700 flex items-center gap-2">
@@ -166,7 +165,7 @@ export default function CoursePlannerAddNew() {
                                 {existingSubjects.length > 0 ? (
                                     existingSubjects.map((subject, idx) => (
                                         <div key={idx} className="relative p-4 rounded-lg border border-gray-200 hover:shadow-md transition bg-white group">
-                                            {/* Color Strip */}
+                                           
                                             <div 
                                                 className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-lg" 
                                                 style={{ backgroundColor: subject.color || '#ddd' }}
@@ -196,7 +195,7 @@ export default function CoursePlannerAddNew() {
                         )}
                     </div>
 
-                    {/* --- Add New Subject Form --- */}
+            
                     <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 space-y-8 border border-gray-100">
                         <div className="flex justify-between items-center border-b pb-4">
                             <h2 className="text-2xl font-bold text-gray-800">เพิ่มวิชาใหม่</h2>
@@ -204,12 +203,12 @@ export default function CoursePlannerAddNew() {
 
                         {subjects.map((subject, index) => (
                             <div key={index} className="relative bg-gray-50/80 rounded-xl p-6 border border-gray-200 transition hover:border-blue-300">
-                                {/* Number Badge */}
+                           
                                 <span className="absolute -top-3 -left-3 bg-blue-600 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold shadow-md z-10">
                                     {index + 1}
                                 </span>
 
-                                {/* Remove Button */}
+                      
                                 {subjects.length > 1 && (
                                     <button
                                         type="button"
@@ -222,7 +221,7 @@ export default function CoursePlannerAddNew() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                                     
-                                    {/* Row 1: Basic Info */}
+                             
                                     <div className="md:col-span-6">
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">ชื่อวิชา <span className="text-red-500">*</span></label>
                                         <input
@@ -260,7 +259,7 @@ export default function CoursePlannerAddNew() {
                                         </div>
                                     </div>
 
-                                    {/* Row 2: Stats */}
+                         
                                     <div className="md:col-span-3">
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">หน่วยกิต</label>
                                         <input
@@ -302,7 +301,7 @@ export default function CoursePlannerAddNew() {
                                         </select>
                                     </div>
 
-                                    {/* Row 3: Topics */}
+                           
                                     <div className="md:col-span-12">
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">
                                             หัวข้อย่อย / บทเรียน (ใช้ "," คั่นแต่ละหัวข้อ)
@@ -335,7 +334,7 @@ export default function CoursePlannerAddNew() {
                             เพิ่มวิชาอีก
                         </button>
 
-                        {/* Action Buttons */}
+              
                         <div className="flex flex-col sm:flex-row gap-4 pt-6 justify-end border-t border-gray-100">
                              <button
                                 type="button"

@@ -11,7 +11,7 @@ function ProfilePage() {
     try {
       const response = await fetch('http://localhost:5000/profile_bp/', {
         method: 'GET',
-        credentials: 'include', // ส่ง cookie/session ไปด้วย
+        credentials: 'include', 
       });
 
       const data = await response.json();
@@ -42,7 +42,7 @@ function ProfilePage() {
       <h2>ข้อมูลโปรไฟล์</h2>
       <p><strong>Username:</strong> {profile.username}</p>
       <p><strong>Email:</strong> {profile.email || '-'}</p>
-      {/* เพิ่มข้อมูลอื่น ๆ ตามต้องการ */}
+    
     </div>
   );
 }

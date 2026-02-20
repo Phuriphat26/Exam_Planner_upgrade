@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import { BookOpenIcon, ClockIcon, AcademicCapIcon, CalendarDaysIcon } from '@heroicons/react/24/solid';
 
-// --- Component ย่อยสำหรับ Card ---
+
 function SummaryCard({ title, value, icon: Icon, className = "" }) {
   return (
     <div className={`bg-white shadow-lg rounded-2xl p-6 border border-gray-100 hover:shadow-xl transition-all ${className}`}>
@@ -15,7 +15,7 @@ function SummaryCard({ title, value, icon: Icon, className = "" }) {
   );
 }
 
-// --- Component หลัก ---
+
 export default function Home() {
   const [plans, setPlans] = useState([]); 
   const [selectedPlanId, setSelectedPlanId] = useState(null); 
@@ -25,7 +25,7 @@ export default function Home() {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [error, setError] = useState(null);
 
-  // Helper แปลงเวลา
+
   const formatMinutesToHM = (minutes) => {
     if (minutes === null || isNaN(minutes) || minutes < 0) return "00:00";
     const totalMins = Math.round(minutes);
@@ -34,7 +34,7 @@ export default function Home() {
     return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
   };
 
-  // --- 1. โหลดรายชื่อแผน ---
+  // โหลดรายชื่อแผน 
   useEffect(() => {
     console.log("🔄 Starting to fetch plans...");
     setLoadingPlans(true);
@@ -76,7 +76,7 @@ export default function Home() {
       });
   }, []); 
 
-  // --- 2. โหลดข้อมูลสรุป ---
+  // โหลดข้อมูลสรุป 
   useEffect(() => {
     if (!selectedPlanId) {
       console.log("⚠️ No plan selected");
@@ -166,11 +166,11 @@ export default function Home() {
       
       <div className="flex-1 p-8">
         
-        {/* Header Section */}
+      
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-6">📊 Dashboard</h1>
           
-          {/* Dropdown เลือกแผน */}
+          
           <div className="bg-white rounded-xl shadow-md p-4 border border-gray-100">
             <div className="flex items-center gap-3">
               <AcademicCapIcon className="w-6 h-6 text-blue-600" />
@@ -198,7 +198,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Card แสดงวิชาวันนี้ */}
+        
         <div className="bg-gradient-to-r from-blue-500 to-indigo-600 shadow-xl rounded-2xl p-8 mb-8 text-white">
           {loadingSummary ? (
             <div className="text-center py-10">
@@ -253,7 +253,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* Progress Bar */}
+    
         {summary && !loadingSummary && (
           <div className="bg-white shadow-lg rounded-2xl p-6 mb-8 border border-gray-100">
             <div className="flex justify-between items-center mb-4">
@@ -280,7 +280,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* สรุปยอด */}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <SummaryCard 
             title="วันที่อ่านแล้ว" 

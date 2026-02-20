@@ -15,7 +15,6 @@ import traceback
 calender_bp = Blueprint('calender', __name__, url_prefix='/calender')
 CORS(calender_bp, supports_credentials=True, origins=["http://localhost:5173"])
 
-# --- Database Connection ---
 client = MongoClient('mongodb://localhost:27017/')
 db = client['mydatabase']
 
@@ -26,7 +25,6 @@ study_sessions_collection = db["study_sessions"]
 # ตั้งค่า Timezone
 THAI_TZ = pytz.timezone('Asia/Bangkok')
 
-# --- Helper Functions ---
 
 def time_to_minutes(time_str):
     try:
@@ -107,7 +105,7 @@ def generate_weighted_schedule(subjects, study_slots):
 
     return final_schedule
 
-# --- Routes ---
+
 
 @calender_bp.route("/api/schedule", methods=["GET"])
 def get_all_schedule():
@@ -121,7 +119,6 @@ def get_all_schedule():
             s["exam_id"] = str(s["exam_id"])
             s["user_id"] = str(s["user_id"])
             
-            # แปลงวันที่เป็น String ป้องกันจอขาว
             if "date" in s:
                 if isinstance(s["date"], (datetime, date)):
                     s["date"] = s["date"].strftime("%Y-%m-%d")
@@ -309,7 +306,6 @@ def update_plan_progress(plan_id):
         print(f"[ERROR] update_plan_progress: {e}")
         return jsonify({"message": "Error updating progress"}), 500
 
-# [FIXED] Reschedule Logic: ค้นหาครอบคลุม + ปักหมุด
 @calender_bp.route("/api/exam-plan/<plan_id>/reschedule", methods=["POST", "OPTIONS"])
 def reschedule_plan(plan_id):
     if request.method == 'OPTIONS': return make_response(jsonify({"message": "OK"}), 200)
@@ -325,7 +321,7 @@ def reschedule_plan(plan_id):
         try: postpone_date_dt = datetime.strptime(postpone_date_str, "%Y-%m-%d")
         except: postpone_date_dt = datetime.now()
 
-        # 1. ค้นหาแบบครอบคลุม
+
         query = {
             "exam_id": plan_oid,
             "status": "pending",
@@ -340,7 +336,7 @@ def reschedule_plan(plan_id):
         if not affected_sessions:
             return jsonify({"message": "ไม่พบตารางเรียนที่จะเลื่อน", "rescheduled_count": 0}), 200
 
-        # 2. เก็บวิชา
+        # เก็บวิชา
         pending_subjects = []
         for s in affected_sessions:
             if s.get('subject') not in ['Free Slot', 'เลื่อนตาราง (Rescheduled)', '⛔ เลื่อนตาราง (Rescheduled)']:
@@ -356,7 +352,7 @@ def reschedule_plan(plan_id):
         
         random.shuffle(flat_subjects_pool)
 
-        # 3. สร้าง Slots ใหม่ (Shift +1)
+        # สร้าง Slots ใหม่ 
         new_sessions_to_insert = []
         
         for s in affected_sessions:
@@ -369,7 +365,7 @@ def reschedule_plan(plan_id):
                 else: continue
             except: continue
 
-            # *** SHIFT +1 DAY ***
+         
             new_date_str = (d_obj + timedelta(days=1)).strftime("%Y-%m-%d")
             
             if flat_subjects_pool:
@@ -386,16 +382,16 @@ def reschedule_plan(plan_id):
                 "slot_id": f"slot_{secrets.token_hex(8)}"
             })
 
-        # 4. ลบของเก่า
+        # ลบของเก่า
         delete_ids = [s["_id"] for s in affected_sessions]
         if delete_ids:
             study_sessions_collection.delete_many({"_id": {"$in": delete_ids}})
 
-        # 5. ใส่ของใหม่
+        # ใส่ของใหม่
         if new_sessions_to_insert:
             study_sessions_collection.insert_many(new_sessions_to_insert)
 
-        # 6. ปักหมุดวันเลื่อน
+        # ปักหมุดวันเลื่อน
         study_sessions_collection.delete_many({
             "exam_id": plan_oid, "date": postpone_date_str, "status": "rescheduled"
         })

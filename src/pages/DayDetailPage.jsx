@@ -16,7 +16,7 @@ export default function DayDetailPage() {
     const { date } = useParams(); 
     const navigate = useNavigate();
 
-    // State
+  
     const [studyTasks, setStudyTasks] = useState([]);
     const [personalTasks, setPersonalTasks] = useState([]);
     const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -49,7 +49,7 @@ export default function DayDetailPage() {
                 axios.get(`http://localhost:5000/calender/api/custom-tasks?date=${date}`, { withCredentials: true })
             ]);
             
-            // Filter for today's tasks
+           
             const todaysStudy = planRes.data.filter(item => {
                 if (!item.date) return false;
                 const itemDate = String(item.date).split('T')[0];
@@ -233,7 +233,7 @@ export default function DayDetailPage() {
                             )}
                         </div>
 
-                        {/* Personal Tasks Column (เหมือนเดิม) */}
+                        {/* Personal Tasks Column  */}
                         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 h-fit">
                             <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                                 <CheckCircleIcon className="w-5 h-5 text-green-500" />

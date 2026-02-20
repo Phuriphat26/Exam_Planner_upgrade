@@ -1,18 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-// (--- ADD ---) Import 'Link' เพื่อใช้ในการเปลี่ยนหน้า
 import { Link } from 'react-router-dom'; 
-// [FIX] เพิ่ม PencilSquareIcon กลับเข้ามา และแก้ไขการนำเข้า Icon
 import { AcademicCapIcon, EyeIcon, PencilSquareIcon } from '@heroicons/react/24/solid'; 
-// [CRITICAL FIX] แก้ไขพาธการนำเข้า Sidebar อีกครั้ง โดยลองใช้พาธแบบ relative ที่สั้นลง (สมมติว่าไฟล์ Sidebar อาจอยู่ level เดียวกันในโครงสร้าง components)
-// หาก "../components/Sidebar.jsx" ยังไม่ได้ผล จะลองใช้ "./Sidebar.jsx" หรือ "Sidebar.jsx" (ถ้าอยู่ components/Subject.jsx) 
-// แต่เนื่องจาก Subject.jsx อยู่ใน pages/ จึงต้องย้อนกลับหนึ่งขั้น: "../components/Sidebar.jsx" 
-// หากยัง error หมายความว่าชื่อไฟล์อาจเป็นตัวพิมพ์เล็กทั้งหมด: "sidebar.jsx" หรือ "Sidebar" อาจไม่มี .jsx
-// ในการแก้ไขครั้งนี้ จะลองตัด .jsx ออกก่อน เพื่อให้ bundler ค้นหาชื่อไฟล์ที่ถูกต้องในโฟลเดอร์ components/
 import Sidebar from "../components/Sidebar";
 
-// --- (Helper Functions) ---
-// (ไม่เปลี่ยนแปลง)
+
 const formatExamDate = (dateString) => {
     if (!dateString) return "ไม่ระบุวันที่";
     const date = new Date(dateString);
@@ -32,7 +24,7 @@ const getDifficulty = (subjects) => {
     if (!subjects || subjects.length === 0) {
         return { text: 'N/A', color: 'bg-gray-100 text-gray-800' };
     }
-    // [EDIT]: คำนวณความยากจาก Priority สูงสุด
+    // คำนวณความยากจาก Priority สูงสุด
     const maxPriority = Math.max(...subjects.map(s => s.priority || 1));
     if (maxPriority >= 3) {
         return { text: 'ยาก', color: 'bg-red-100 text-red-800' };
@@ -43,7 +35,7 @@ const getDifficulty = (subjects) => {
     return { text: 'ง่าย', color: 'bg-green-100 text-green-800' };
 };
 
-// --- (Main Component) ---
+
 
 export default function Subject() {
     const [plans, setPlans] = useState([]);
@@ -72,22 +64,18 @@ export default function Subject() {
         fetchPlans();
     }, []);
 
-    // --- (Render Function) ---
 
-    // [MODIFIED]: นำ <Link> กลับมาหุ้มทั้ง Card ออก และเพิ่มปุ่ม 'แก้ไข' กลับเข้าไป
+
     const renderPlanCard = (plan) => {
         const difficulty = getDifficulty(plan.subjects);
 
         return (
-            // เปลี่ยน Link เป็น Div และเพิ่ม h-full flex flex-col เพื่อจัดปุ่มให้อยู่ด้านล่าง
+           
             <div 
                 key={plan._id} 
                 className="bg-white p-6 rounded-2xl shadow-lg transition-all hover:shadow-xl h-full flex flex-col"
             >
-                
-                {/* [MODIFIED]: เนื้อหาของการ์ด - หุ้มด้วย div flex-grow เพื่อดันปุ่มลงด้านล่าง */}
                 <div className="flex-grow">
-                    {/* ส่วนหัวของการ์ด (Title และ ป้ายความยาก) */}
                     <div className="flex justify-between items-start mb-2">
                         <h2 className="text-2xl font-bold text-gray-800 line-clamp-2">
                             {plan.exam_title}
@@ -97,7 +85,6 @@ export default function Subject() {
                         </span>
                     </div>
 
-                    {/* วันที่สอบ */}
                     <div className="flex items-center text-gray-600 mb-4">
                         <AcademicCapIcon className="h-5 w-5 mr-2 text-blue-500" />
                         <p>
@@ -105,7 +92,6 @@ export default function Subject() {
                         </p>
                     </div>
 
-                    {/* ช่วงเวลาอ่าน (จาก study_plan) */}
                     <h3 className="text-md font-semibold text-gray-700 mt-5 mb-3 border-t pt-3">
                         ช่วงเวลาสำหรับอ่านหนังสือ
                     </h3>
@@ -130,9 +116,7 @@ export default function Subject() {
                     </div>
                 </div>
 
-                {/* ปุ่มดูรายละเอียด และ แก้ไข (อยู่ด้านล่างสุด) */}
                 <div className="border-t border-gray-200 mt-6 pt-4 flex justify-end gap-3">
-                    {/* ปุ่ม ดูรายละเอียด */}
                     <Link 
                         to={`/exam-plan/${plan._id}`}
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition flex items-center gap-1.5"
@@ -141,9 +125,8 @@ export default function Subject() {
                         ดูรายละเอียด
                     </Link>
                     
-                    {/* ปุ่ม แก้ไข - ถูกเพิ่มกลับเข้ามา */}
                     <Link 
-                        to={`/exam-planner/edit/${plan._id}`} // สมมติว่ามี Route สำหรับแก้ไข
+                        to={`/exam-planner/edit/${plan._id}`} 
                         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition flex items-center gap-1.5"
                     >
                         <PencilSquareIcon className="h-4 w-4" />
@@ -160,7 +143,6 @@ export default function Subject() {
             
             <Sidebar />
             
-            {/* Main Content */}
             <div className="flex-1 p-4 sm:p-8">
                 <div className="max-w-5xl mx-auto">
                     
@@ -173,7 +155,6 @@ export default function Subject() {
                     ) : error ? (
                         <div className="text-center py-10 text-red-500">{error}</div>
                     ) : (
-                        // Grid Layout (เหมือนเดิม)
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {plans.length > 0 ? (
                                 plans.map(plan => renderPlanCard(plan))
@@ -186,10 +167,10 @@ export default function Subject() {
                         </div>
                     )}
 
-                    {/* ปุ่ม "จัดตาราง" ที่มุมขวาล่าง */}
+
                     {!isLoading && (
                         <div className="mt-12 flex justify-center">
-                            {/* <Link> (เหมือนเดิม) */}
+       
                             <Link 
                                 to="/create-plan" 
                                 className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-all text-lg flex items-center gap-2"

@@ -1,13 +1,12 @@
 // สันนิษฐานว่านี่คือไฟล์ PreDetail.jsx
 import React from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate เข้ามา
+import { useNavigate } from 'react-router-dom'; 
 
-export default function PreDetail() { // เปลี่ยนชื่อ Component ให้ตรงกับที่ใช้ใน Router
-  const navigate = useNavigate(); // 2. เรียกใช้ hook เพื่อให้ได้ฟังก์ชัน navigate
+export default function PreDetail() { 
+  const navigate = useNavigate();
 
-  // ฟังก์ชันที่จะทำงานเมื่อปุ่มถูกคลิก
   const handleGetStarted = () => {
-    navigate('/login'); // 3. สั่งให้เปลี่ยนหน้าไปที่ /login (หรือ /signup ตามต้องการ)
+    navigate('/login'); 
   };
 
   return (
@@ -15,7 +14,6 @@ export default function PreDetail() { // เปลี่ยนชื่อ Compo
       <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-5xl w-full">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           
-          {/* 🔹 Left Section: ข้อความ */}
           <div>
             <h1 className="text-5xl font-bold text-blue-700 mb-4">
               Plan your exam schedule
@@ -25,14 +23,14 @@ export default function PreDetail() { // เปลี่ยนชื่อ Compo
               วางแผนชีวิตให้ดี ไม่มีพลาดนัดสำคัญ
             </p>
             <button 
-              onClick={handleGetStarted} // 4. เพิ่ม onClick เพื่อเรียกใช้ฟังก์ชัน
+              onClick={handleGetStarted} 
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
             >
               Get Started
             </button>
           </div>
 
-          {/* 🔹 Right Section: รูปภาพ */}
+        
           <div className="flex justify-center">
             <img
               src="/calendar.png" 

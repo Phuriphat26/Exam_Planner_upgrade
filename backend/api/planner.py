@@ -11,26 +11,26 @@ from collections import Counter
 import traceback
 import pytz 
 
-# --- Configuration ---
+
 planner_bp = Blueprint("planner_bp", __name__)
-# ตั้งค่า CORS ให้รองรับ Credentials และ Methods ที่จำเป็น
+
 CORS(planner_bp, supports_credentials=True, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
-# ตั้งค่าการเชื่อมต่อ MongoDB
+
 client = MongoClient(os.getenv("MONGODB_URI", "mongodb://localhost:27017/"))
-db = client["mydatabase"] # ตรวจสอบชื่อ Database ให้ตรงกับเครื่องของคุณ
+db = client["mydatabase"] 
 
 subjects_collection = db["subject"]
 exam_plans_collection = db["exam_plans"]
 study_sessions_collection = db["study_sessions"]
 fixed_schedules_collection = db["fixed_schedules"]
 
-# ตั้งค่า Timezone ไทย
+
 THAI_TZ = pytz.timezone('Asia/Bangkok')
 
-# --- 1. Helper Functions ---
+
 def time_to_minutes(time_str):
-    """แปลงเวลา 'HH:MM' เป็นนาที (int)"""
+
     try:
         hours, minutes = map(int, time_str.split(':'))
         return (hours * 60) + minutes
@@ -38,20 +38,18 @@ def time_to_minutes(time_str):
         return 0
 
 def minutes_to_time(total_minutes):
-    """แปลงนาที (int) กลับเป็น 'HH:MM'"""
+
     hours = total_minutes // 60
     minutes = total_minutes % 60
     return f"{hours:02d}:{minutes:02d}"
 
 def is_time_overlap(start1, end1, start2, end2):
-    """เช็คว่าช่วงเวลาชนกันหรือไม่"""
+
     return max(start1, start2) < min(end1, end2)
 
-# --- 2. Algorithm จัดตาราง (Weighted Round Robin) ---
+#Algorithm จัดตาราง 
 def generate_weighted_schedule(subjects, study_slots):
-    """
-    จัดวิชาลงในสล็อตเวลา โดยให้ความสำคัญตามค่า priority
-    """
+
     if not subjects or not study_slots:
         return []
 
@@ -68,16 +66,16 @@ def generate_weighted_schedule(subjects, study_slots):
     task_pool = []
     allocated_count = 0
     
-    # 
+
     
-    # 1. เติม Pool ตามน้ำหนัก Priority
+    # เติม Pool ตามน้ำหนัก Priority
     for s in subjects:
         count = math.floor(s['priority'] * slots_per_point)
         allocated_count += count
         for _ in range(count):
             task_pool.append(s)
 
-    # 2. เติมเศษที่เหลือ
+    # เติมเศษที่เหลือ
     remainder = total_slots - allocated_count
     sorted_subjects = sorted(subjects, key=lambda s: s['priority'], reverse=True)
     
@@ -88,13 +86,13 @@ def generate_weighted_schedule(subjects, study_slots):
         remainder -= 1
         idx += 1
 
-    # 3. สลับลำดับใน Pool เพื่อความหลากหลาย
+    # สลับลำดับใน Pool เพื่อความหลากหลาย
     random.shuffle(task_pool)
 
     final_schedule = []
     last_subject_name = None
 
-    # 4. หยอดลง Slot (พยายามไม่ให้วิชาซ้ำกันติดๆ กัน)
+    # หยอดลง Slot 
     for i in range(total_slots):
         if not task_pool:
             final_schedule.append({
@@ -106,7 +104,6 @@ def generate_weighted_schedule(subjects, study_slots):
             continue
 
         selected_index = -1
-        # พยายามหาวิชาที่ไม่ซ้ำกับวิชาที่แล้ว
         for pool_idx, task in enumerate(task_pool):
             if task['name'] != last_subject_name:
                 selected_index = pool_idx
@@ -129,7 +126,7 @@ def generate_weighted_schedule(subjects, study_slots):
 
     return final_schedule
 
-# --- 3. Routes ---
+
 
 @planner_bp.route("/api/settings/fixed-schedule", methods=["POST", "GET"])
 def handle_fixed_schedule():
@@ -141,7 +138,6 @@ def handle_fixed_schedule():
     if request.method == "POST":
         try:
             schedules = request.json.get("schedules", [])
-            # ลบอันเก่าแล้วบันทึกใหม่
             fixed_schedules_collection.delete_many({"user_id": user_id})
             
             if schedules:
@@ -195,7 +191,6 @@ def get_user_subjects():
         
         for doc in cursor:
             final_topics = doc.get("topics", [])
-            # ถ้าไม่มี topics ลองสร้าง Mock จากจำนวนบท
             if not final_topics:
                 try:
                     chapter_count = int(doc.get("subject", "0"))
@@ -254,7 +249,7 @@ def add_exam_plan():
             if day_date_str == exam_date_str:
                 print(f"[FILTER] Skipping exam date overlap: {day_date_str}")
                 continue
-            
+                                 
             current_date_obj = datetime.strptime(day_date_str, "%Y-%m-%d")
             day_of_week = current_date_obj.strftime("%A")
 
@@ -408,7 +403,7 @@ def reschedule_plan(plan_id):
         user_id = ObjectId(session["user_id"])
         plan_oid = ObjectId(plan_id)
         
-        # 1. รับวันที่ต้องการเลื่อน
+        # รับวันที่ต้องการเลื่อน
         raw_date = request.json.get("date")
         postpone_date_str = str(raw_date).split('T')[0]
         
@@ -420,8 +415,7 @@ def reschedule_plan(plan_id):
 
         print(f"[RESCHEDULE] Triggered for date: {postpone_date_str}")
 
-        # 2. ค้นหาตารางที่ยังไม่เสร็จ (pending) ตั้งแต่วันนั้นเป็นต้นไป
-        # ใช้ $or เพื่อรองรับทั้งกรณีที่ Date เก็บเป็น String หรือ ISODate
+        # ค้นหาตารางที่ยังไม่เสร็จ (pending) ตั้งแต่วันนั้นเป็นต้นไป
         query = {
             "exam_id": plan_oid,
             "status": "pending",
@@ -441,7 +435,7 @@ def reschedule_plan(plan_id):
                 "rescheduled_count": 0
             }), 200
 
-        # 3. จัดกลุ่มตามวันที่เดิม (เพื่อ Shift ไปทีละวัน)
+        # จัดกลุ่มตามวันที่เดิม (เพื่อ Shift ไปทีละวัน)
         date_groups = {}
         for sess in affected_sessions:
             raw_s_date = sess.get("date")
@@ -459,7 +453,7 @@ def reschedule_plan(plan_id):
         
         sorted_dates = sorted(date_groups.keys())
         
-        # 4. สร้างรายการใหม่ (เลื่อนวัน +1)
+        # สร้างรายการใหม่ (เลื่อนวัน +1)
         new_sessions_to_insert = []
         
         for original_date_str in sorted_dates:
@@ -478,31 +472,27 @@ def reschedule_plan(plan_id):
                     "exam_id": plan_oid,
                     "user_id": user_id,
                     "subject": sess.get("subject", "Free Slot"),
-                    "date": new_date_str,          # วันที่ใหม่ (+1 วัน)
+                    "date": new_date_str,          
                     "startTime": sess["startTime"],
                     "endTime": sess["endTime"],
-                    "status": "postponed",         # เปลี่ยนสถานะเป็นเลื่อนแล้ว (ใน DB อาจจะเก็บ pending เหมือนเดิมเพื่อให้เลื่อนต่อได้ แต่ในที่นี้กำหนดเป็น postponed หรือ pending ตาม logic ที่ต้องการ)
-                    # หมายเหตุ: ถ้าอยากให้เลื่อนแล้วเลื่อนอีกได้ ควรตั้งเป็น 'pending'
-                    # แต่ถ้าอยากให้ Frontend โชว์ว่า "เลื่อนมาแล้ว" อาจต้องใช้ flag อื่น
-                    # ในที่นี้ขอใช้ 'pending' เพื่อให้จัดการต่อง่าย
+                    "status": "postponed",         
                     "status": "pending", 
                     "isExam": sess.get("isExam", False),
                     "color": sess.get("color", "#3B82F6"),
-                    "slot_id": str(uuid.uuid4())   # สร้าง ID ใหม่
+                    "slot_id": str(uuid.uuid4())   
                 }
                 new_sessions_to_insert.append(new_sess)
 
-        # 5. ลบตารางเก่าทิ้ง
+        # ลบตารางเก่าทิ้ง
         delete_ids = [s["_id"] for s in affected_sessions]
         if delete_ids:
             study_sessions_collection.delete_many({"_id": {"$in": delete_ids}})
 
-        # 6. บันทึกตารางใหม่
+        # บันทึกตารางใหม่
         if new_sessions_to_insert:
             study_sessions_collection.insert_many(new_sessions_to_insert)
             
-            # (Optional) ถ้าอยากให้รายการของ "วันที่เดิม" ขึ้นสถานะว่า Postponed (เป็นประวัติ) 
-            # เราอาจจะต้อง insert dummy record ไว้ แต่ในโค้ดนี้คือการ "ย้าย" (Move) ไปเลย
+            
 
         return jsonify({
             "message": f"เลื่อนตารางสำเร็จ! ({len(new_sessions_to_insert)} รายการ)",

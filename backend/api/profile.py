@@ -39,7 +39,7 @@ def edit_profile():
     if 'email' in data:
         update_fields['email'] = data['email']
     if 'password' in data:
-        update_fields['password'] = data['password']  # ควร hash ก่อนเก็บจริงๆ
+        update_fields['password'] = data['password']  
 
     if not update_fields:
         return jsonify({'error': 'No valid fields to update'}), 400

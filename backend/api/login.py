@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, session
 from flask_cors import cross_origin
 from pymongo import MongoClient
 from werkzeug.security import check_password_hash
-from bson.objectid import ObjectId  # <-- อย่าลืม import ObjectId
+from bson.objectid import ObjectId  
 
 login_bp = Blueprint('login', __name__, url_prefix='/login')
 
@@ -22,17 +22,16 @@ def login():
     if user and check_password_hash(user['password'], password):
         user_role = user.get('role', 'user')
 
-        # เก็บลง session (เผื่อใช้ในอนาคต)
+        # เก็บลง session 
         session['user_id'] = str(user['_id'])
         session['username'] = user['username']
         session['role'] = user_role
 
-        # --- ⭐️ ส่วนสำคัญที่เพิ่มเข้ามา ⭐️ ---
         # ส่ง user_id กลับไปให้ Frontend
         return jsonify({
             'success': True,
             'role': user_role,
-            'user_id': str(user['_id'])  # <-- React จะใช้ค่านี้
+            'user_id': str(user['_id'])  
         })
         # --------------------------------
 

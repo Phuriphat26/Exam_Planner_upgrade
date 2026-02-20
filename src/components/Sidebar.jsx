@@ -1,6 +1,6 @@
 import React from "react";
 import { Calendar, LogOut, Plus } from "lucide-react";
-// 1. เปลี่ยนจาก Link เป็น NavLink
+
 import { NavLink, useNavigate, Link } from "react-router-dom";
 
 export default function Sidebar() {
@@ -26,13 +26,13 @@ export default function Sidebar() {
     }
   };
 
-  // 2. กำหนดสไตล์ Active และ Inactive ไว้ในตัวแปร
+  // กำหนดสไตล์ Active และ Inactive ไว้ในตัวแปร
   const activeClass =
     "w-full text-left px-3 py-2 rounded-lg bg-indigo-50 text-indigo-600 font-medium";
   const inactiveClass =
     "w-full text-left px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg";
 
-  // 3. สร้างฟังก์ชันสำหรับเช็ค className ของ NavLink
+  // สร้างฟังก์ชันสำหรับเช็ค className ของ NavLink
   const getNavLinkClass = ({ isActive }) => (isActive ? activeClass : inactiveClass);
 
   return (
@@ -44,8 +44,7 @@ export default function Sidebar() {
         </div>
 
         <nav className="flex flex-col gap-2 px-4">
-          {/* 4. เปลี่ยน Link เป็น NavLink และใช้ className แบบฟังก์ชัน */}
-          {/* 5. เพิ่ม 'end' ให้ Dashboard เพื่อไม่ให้มัน active ตลอดเวลา (เพราะ / ไปซ้ำกับ /Calendar) */}
+        
           <NavLink to="/home" className={getNavLinkClass} end>
             Dashboard
           </NavLink>
@@ -62,7 +61,7 @@ export default function Sidebar() {
             แผนการอ่าน
           </NavLink>
 
-          {/* ปุ่ม Add New ยังใช้ Link ได้ เพราะมีสไตล์ที่ต่างกันอยู่แล้ว */}
+          
           <Link
             to="/add"
             className="mt-4 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-indigo-100 to-blue-50 text-indigo-600 font-medium hover:from-indigo-200 hover:to-blue-100 transition"

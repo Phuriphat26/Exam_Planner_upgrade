@@ -7,9 +7,9 @@ from bson.objectid import ObjectId
 import pytz
 import traceback
 
-# --- 1. การเชื่อมต่อ Database ---
+
 try:
-    # ตรวจสอบ Connection String ให้ตรงกับของคุณ
+
     client = MongoClient('mongodb://localhost:27017/')
     db = client['mydatabase']
     exam_plans_collection = db["exam_plans"]
@@ -21,18 +21,17 @@ except Exception as e:
     exam_plans_collection = None
     study_sessions_collection = None
 
-# --- 2. สร้าง Blueprint ---
 api_bp = Blueprint('api_bp', __name__, url_prefix='/api')
 CORS(api_bp, supports_credentials=True, origins=["http://localhost:5173"])
 
-# --- API 1: ดึงรายชื่อแผน (เฉพาะของ User นี้) ---
+
 @api_bp.route('/get_all_plans', methods=['GET'])
 def get_all_plans():
     if exam_plans_collection is None:
         return jsonify({"error": "Database error"}), 500
     
     try:
-        # [Security Fix] ต้องดึง user_id จาก Session
+        # ต้องดึง user_id จาก Session
         user_id = session.get("user_id")
         if not user_id:
             return jsonify({"error": "Unauthorized"}), 401
@@ -58,14 +57,14 @@ def get_all_plans():
         print(f"❌ Error /get_all_plans: {e}")
         return jsonify({"error": str(e)}), 500
 
-# --- API 2: ดึงวิชาที่จะเรียน (ของ User นี้ + ตามเวลาจริง) ---
+# ดึงวิชาที่จะเรียน (ของ User นี้ + ตามเวลาจริง) 
 @api_bp.route('/get_today_event/<plan_id>', methods=['GET'])
 def get_today_event(plan_id):
     if study_sessions_collection is None:
         return jsonify({"error": "Database error"}), 500
 
     try:
-        # [Security Fix] เช็ค User
+        # เช็ค User
         user_id = session.get("user_id")
         if not user_id:
             return jsonify({"error": "Unauthorized"}), 401
@@ -80,7 +79,7 @@ def get_today_event(plan_id):
         # ดึงตารางเรียนทั้งหมดของ "วันนี้" (เรียงตามเวลา)
         today_sessions = list(study_sessions_collection.find({
             "exam_id": ObjectId(plan_id),
-            "user_id": ObjectId(user_id),  # [Security Fix] กรอง User
+            "user_id": ObjectId(user_id), 
             "date": today_str
         }).sort("startTime", 1))
 
@@ -91,13 +90,13 @@ def get_today_event(plan_id):
             start = sess.get("startTime", "00:00")
             end = sess.get("endTime", "23:59")
             
-            # กรณี 1: กำลังเรียนอยู่ตอนนี้ (Active)
+            # กำลังเรียนอยู่ตอนนี้ (Active)
             if start <= current_time_str <= end:
                 target_session = sess
                 print("   -> Found ACTIVE session")
                 break 
             
-            # กรณี 2: ยังไม่ถึงเวลาเรียน (Upcoming) เอาอันแรกที่เจอ
+            # ยังไม่ถึงเวลาเรียน (Upcoming) เอาอันแรกที่เจอ
             if start > current_time_str and target_session is None:
                 target_session = sess
                 print("   -> Found UPCOMING session")

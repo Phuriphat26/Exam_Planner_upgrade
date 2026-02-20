@@ -10,12 +10,12 @@ import traceback
 home_bp = Blueprint('home_bp', __name__, url_prefix='/home_bp')
 CORS(home_bp, supports_credentials=True, origins=["http://localhost:5173"])
 
-# --- Database Connection ---
+
 try:
-    # ใช้ Environment Variable หรือค่า Default
+ 
     mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
     client = MongoClient(mongo_uri)
-    db = client['mydatabase']  # ตรวจสอบชื่อ DB ให้ตรงกัน
+    db = client['mydatabase']  
     
     exam_plans_collection = db["exam_plans"]
     study_sessions_collection = db["study_sessions"]
@@ -25,27 +25,27 @@ try:
 except Exception as e:
     print(f"❌ DB Error: {e}")
 
-# --- Routes ---
+
 
 @home_bp.route('/plans', methods=['GET'])
 def get_all_plans():
     try:
-        # [FIX 1] แก้ปัญหาเห็นข้อมูลคนอื่น: ต้องเช็ค user_id จาก Session
+
         user_id = session.get("user_id")
         if not user_id:
             return jsonify({"error": "Unauthorized"}), 401
 
-        # สร้าง Query กรองเฉพาะของ User คนนี้
+ 
         query = {
             "user_id": ObjectId(user_id)
         }
 
-        # ดึงข้อมูลจาก DB
+
         plans = list(exam_plans_collection.find(query, {
             "_id": 1, "exam_title": 1, "status": 1, "exam_date": 1, "subjects": 1
         }).sort("createdAt", -1))
         
-        # แปลงข้อมูลให้เป็น Format ที่ Frontend อ่านง่าย
+
         for p in plans: 
             p["_id"] = str(p["_id"])
             if "exam_date" in p and isinstance(p["exam_date"], datetime):
@@ -61,22 +61,22 @@ def get_all_plans():
 @home_bp.route('/study_summary/<plan_id>', methods=['GET'])
 def get_study_summary(plan_id):
     try:
-        # ตรวจสอบสิทธิ์ (Optional: เพื่อความปลอดภัยยิ่งขึ้น)
+        # ตรวจสอบสิทธิ์ 
         user_id = session.get("user_id")
         if not user_id:
              return jsonify({"error": "Unauthorized"}), 401
 
         plan_oid = ObjectId(plan_id)
 
-        # 1. ดึงข้อมูล Plan มาด้วย เพื่อเอารายชื่อวิชาจริงๆ
+        # ดึงข้อมูล Plan  เพื่อเอารายชื่อวิชา
         plan = exam_plans_collection.find_one({"_id": plan_oid})
         if not plan:
             return jsonify({"error": "Plan not found"}), 404
 
-        # 2. ดึง Sessions มาคำนวณวันและเวลาเรียน
+        # ดึง Sessions มาคำนวณวันและเวลาเรียน
         sessions = list(study_sessions_collection.find({"exam_id": plan_oid}))
 
-        # Helper สำหรับแปลงเวลา
+   
         def parse_time(t_str):
             try:
                 return datetime.strptime(t_str, "%H:%M")
@@ -88,13 +88,11 @@ def get_study_summary(plan_id):
         total_minutes = 0
         today_study_info = []
         
-        # หาวันปัจจุบัน (Timezone ไทย)
         now_utc = datetime.now(pytz.utc)
         now_thai = now_utc.astimezone(THAI_TZ)
         today_str = now_thai.strftime("%Y-%m-%d")
 
         for s in sessions:
-            # แปลงวันที่ให้เป็น String มาตรฐาน
             s_date = s.get('date')
             if isinstance(s_date, datetime):
                 s_date = s_date.strftime("%Y-%m-%d")
@@ -103,8 +101,7 @@ def get_study_summary(plan_id):
             
             s_status = s.get('status')
             
-            # นับวัน (เฉพาะที่ไม่ใช่การเลื่อนตาราง หรือจะนับรวมก็ได้แล้วแต่ Logic)
-            # ในที่นี้สมมติว่านับหมดที่มีในตาราง
+            # นับวัน (เฉพาะที่ไม่ใช่การเลื่อนตาราง หรือจะนับรวม)
             if s_status == 'completed':
                 days_read_set.add(s_date)
             
@@ -112,7 +109,7 @@ def get_study_summary(plan_id):
             if s_date >= today_str and s_status != 'completed':
                  days_remaining_set.add(s_date)
 
-            # คำนวณเวลาที่ใช้ไป (เฉพาะ Completed)
+            # คำนวณเวลาที่ใช้ไป 
             if s_status == 'completed':
                  start = s.get('startTime', '00:00')
                  end = s.get('endTime', '00:00')
@@ -134,8 +131,7 @@ def get_study_summary(plan_id):
                      "status": s_status
                  })
 
-        # --- [FIX 2] แก้ปัญหานับวิชาเกิน (เลข 4) ---
-        # ใช้วิธีดึงจาก Plan โดยตรง จะได้รายชื่อวิชาที่ถูกต้อง (เช่น 3 วิชา)
+        # ดึงจาก Plan โดยตรง จะได้รายชื่อวิชาที่ถูกต้อง (เช่น 3 วิชา)
         real_subjects = plan.get('subjects', [])
         subject_count = len(real_subjects)
         
@@ -151,7 +147,7 @@ def get_study_summary(plan_id):
         result = {
             "days_read": len(days_read_set),
             "days_remaining": len(days_remaining_set),
-            "subject_count": subject_count,  # ค่าที่แก้ไขแล้ว
+            "subject_count": subject_count,  
             "total_duration_minutes": total_minutes,
             "today_study": today_study_info
         }

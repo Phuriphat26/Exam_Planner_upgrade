@@ -13,7 +13,7 @@ export default function Signup() {
 
   // ฟังก์ชันสำหรับอัปเดต state เมื่อผู้ใช้พิมพ์ใน input
   const handleChange = (e) => {
-    // ใช้ 'name' attribute ของ input เพื่อระบุ field ที่จะอัปเดต
+
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -22,7 +22,7 @@ export default function Signup() {
 
   // ฟังก์ชันสำหรับส่งข้อมูลการสมัครสมาชิกไปยัง API
   const handleSignUp = async (e) => {
-    e.preventDefault(); // ป้องกันการรีเฟรชหน้าเว็บ
+    e.preventDefault(); 
 
     try {
       const response = await fetch('http://localhost:5000/register/', {
@@ -37,7 +37,7 @@ export default function Signup() {
 
       if (response.ok) {
         alert('สมัครสมาชิกสำเร็จ!');
-        navigate('/login'); // กลับไปที่หน้าหลักหลังสมัครเสร็จ
+        navigate('/login'); 
       } else {
         alert('เกิดข้อผิดพลาด: ' + result.message);
       }
@@ -52,37 +52,37 @@ export default function Signup() {
       <div className="w-96 bg-white shadow-lg rounded-2xl p-10">
         <h2 className="text-2xl font-bold text-center mb-6">Sign Up</h2>
         
-        {/* ใช้ <form> และ onSubmit เพื่อจัดการการ submit */}
+     
         <form onSubmit={handleSignUp}>
           <input
             type="text"
-            name="username" // เพิ่ม name attribute
+            name="username" 
             placeholder="Username"
-            value={formData.username} // เชื่อมกับ state
-            onChange={handleChange} // เชื่อมกับ function
+            value={formData.username} 
+            onChange={handleChange} 
             required
             className="w-full px-8 py-2 rounded-full border-2 border-gray-300 bg-white text-gray-800 focus:border-gray-800 focus:outline-none mb-3"
           />
           <input
             type="email"
-            name="email" // เพิ่ม name attribute
+            name="email" 
             placeholder="Email"
-            value={formData.email} // เชื่อมกับ state
-            onChange={handleChange} // เชื่อมกับ function
+            value={formData.email} 
+            onChange={handleChange} 
             required
             className="w-full px-8 py-2 rounded-full border-2 border-gray-300 bg-white text-gray-800 focus:border-gray-800 focus:outline-none mb-3"
           />
           <input
             type="password"
-            name="password" // เพิ่ม name attribute
+            name="password" 
             placeholder="Password"
-            value={formData.password} // เชื่อมกับ state
-            onChange={handleChange} // เชื่อमกับ function
+            value={formData.password} 
+            onChange={handleChange} 
             required
             className="w-full px-8 py-2 rounded-full border-2 border-gray-300 bg-white text-gray-800 focus:border-gray-800 focus:outline-none mb-4"
           />
           <button 
-            type="submit" // เปลี่ยนเป็น type="submit"
+            type="submit" 
             className="w-full py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-800 transition-colors"
           >
             Sign Up

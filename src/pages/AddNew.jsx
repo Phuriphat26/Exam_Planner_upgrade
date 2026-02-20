@@ -3,36 +3,36 @@ import axios from 'axios';
 import Sidebar from "../components/Sidebar";
 
 export default function ExamPlannerAddNew() {
-    // State for Exam Details
+
     const [examTitle, setExamTitle] = useState('');
     const [examSubjects, setExamSubjects] = useState([]); 
     const [examDate, setExamDate] = useState('');
 
-    // State for fetching subjects
+
     const [subjects, setSubjects] = useState([]);
     const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
     const [subjectError, setSubjectError] = useState('');
 
-    // State for preparation period
+
     const [prepStartDate, setPrepStartDate] = useState('');
     const [prepEndDate, setPrepEndDate] = useState('');
     const [defaultStartTime, setDefaultStartTime] = useState('09:00');
     const [defaultEndTime, setDefaultEndTime] = useState('17:00');
     
-    // State for the generated daily schedule
+
     const [dailySchedule, setDailySchedule] = useState([]);
 
-    // State for notification preference
+
     const [sendNotifications, setSendNotifications] = useState(true);
 
-    // Effect to fetch user's subjects on component mount
+
     useEffect(() => {
         const fetchSubjects = async () => {
             setIsLoadingSubjects(true);
             setSubjectError('');
             
             try {
-                // Endpoint นี้ต้องมั่นใจว่า Backend ส่ง color และ subject_code มาด้วย (ตามที่แก้ไปล่าสุด)
+   
                 const API_URL = "http://localhost:5000/api/subjects/"; 
                 
                 const response = await axios.get(API_URL, { 
@@ -61,7 +61,7 @@ export default function ExamPlannerAddNew() {
         fetchSubjects();
     }, []);
 
-    // Effect to auto-generate daily schedule when dates change
+
     useEffect(() => {
         if (prepStartDate && prepEndDate && new Date(prepStartDate) <= new Date(prepEndDate)) {
             const start = new Date(prepStartDate);
@@ -82,7 +82,7 @@ export default function ExamPlannerAddNew() {
         }
     }, [prepStartDate, prepEndDate, defaultStartTime, defaultEndTime]);
 
-    // Memoized calculation for formatting display dates
+
     const formattedDays = useMemo(() => {
         return dailySchedule.map(day => {
             const dateObj = new Date(day.date + 'T00:00:00');
@@ -95,14 +95,14 @@ export default function ExamPlannerAddNew() {
         });
     }, [dailySchedule]);
 
-    // Handler to update a specific day in the schedule
+
     const handleDayChange = (index, field, value) => {
         const updatedSchedule = [...dailySchedule];
         updatedSchedule[index] = { ...updatedSchedule[index], [field]: value };
         setDailySchedule(updatedSchedule);
     };
     
-    // Handler to add/remove subjects from the exam plan
+
     const handleSubjectChange = (e) => {
         const { value, checked } = e.target;
     
@@ -114,8 +114,8 @@ export default function ExamPlannerAddNew() {
                     {
                         name: selectedSubject.title,
                         priority: selectedSubject.priority ?? 1,
-                        color: selectedSubject.color || '#3B82F6', // [NEW] ส่งสีไปด้วย
-                        subject_code: selectedSubject.subject_code // [NEW] ส่งรหัสวิชา (ถ้ามี)
+                        color: selectedSubject.color || '#3B82F6', 
+                        subject_code: selectedSubject.subject_code 
                     },
                 ]);
             }
@@ -124,7 +124,7 @@ export default function ExamPlannerAddNew() {
         }
     };
 
-    // Handler to reset the form
+
     const handleCancel = () => {
         setExamTitle('');
         setExamSubjects([]);
@@ -137,7 +137,7 @@ export default function ExamPlannerAddNew() {
         setSendNotifications(true);
     };
 
-    // Handler to submit the form
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         
@@ -162,11 +162,11 @@ export default function ExamPlannerAddNew() {
 
         const payload = {
             examTitle,
-            examSubjects, // ส่งไปทั้ง object (name, priority, color)
+            examSubjects, 
             examDate,
             studyPlan,
             sendNotifications,
-            // เพิ่ม input ดิบสำหรับใช้ตอนแก้ไข (Optional)
+
             prepStartDate,
             prepEndDate,
             defaultStartTime,
@@ -198,7 +198,7 @@ export default function ExamPlannerAddNew() {
 
                     <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 space-y-10">
                         
-                        {/* 1. Exam Information Section */}
+                   
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 border-b pb-2 border-gray-100">
                                 <span className="bg-blue-100 text-blue-600 w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm">1</span>
@@ -226,7 +226,7 @@ export default function ExamPlannerAddNew() {
                                     />
                                 </div>
                                 
-                                {/* Subject Selection */}
+                    
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                                         เลือกวิชาที่สอบ (และระดับความสำคัญ) <span className="text-red-500">*</span>
@@ -285,7 +285,7 @@ export default function ExamPlannerAddNew() {
                             </div>
                         </div>
 
-                        {/* 2. Preparation Period Section */}
+              
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 border-b pb-2 border-gray-100">
                                 <span className="bg-purple-100 text-purple-600 w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm">2</span>
@@ -332,7 +332,7 @@ export default function ExamPlannerAddNew() {
                             </div>
                         </div>
 
-                        {/* 3. Daily Study Schedule Section */}
+            
                         {formattedDays.length > 0 && (
                             <div className="space-y-6">
                                 <div className="flex items-center gap-2 border-b pb-2 border-gray-100">
@@ -381,7 +381,7 @@ export default function ExamPlannerAddNew() {
                             </div>
                         )}
 
-                        {/* 4. Notification Toggle */}
+         
                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex items-start gap-4">
                             <input
                                 id="sendNotifications"
@@ -398,7 +398,7 @@ export default function ExamPlannerAddNew() {
                             </div>
                         </div>
 
-                        {/* 5. Action Buttons */}
+          
                         <div className="flex gap-4 pt-4 border-t border-gray-100">
                             <button 
                                 type="button" 

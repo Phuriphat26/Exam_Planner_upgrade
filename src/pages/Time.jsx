@@ -5,12 +5,12 @@ import { ClockIcon, PlayIcon, PauseIcon, ArrowPathIcon, ExclamationTriangleIcon 
 function Time() {
   const [currentTime, setCurrentTime] = useState(new Date());
   
-  // Plans State
+
   const [plans, setPlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
 
-  // Timer State
+
   const [todaySubject, setTodaySubject] = useState('กำลังโหลด...');
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [initialSeconds, setInitialSeconds] = useState(0);
@@ -19,13 +19,13 @@ function Time() {
   const [initialSubject, setInitialSubject] = useState('');
   const [isRescheduled, setIsRescheduled] = useState(false);
 
-  // 1. Clock Update
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 2. Fetch Plans
+
   useEffect(() => {
     const fetchPlans = async () => {
       setIsLoadingPlans(true);
@@ -67,7 +67,7 @@ function Time() {
     fetchPlans();
   }, []);
 
-  // 3. Fetch Today Schedule
+
   useEffect(() => {
     if (!selectedPlanId) return;
 
@@ -91,7 +91,7 @@ function Time() {
           return t.exam_id === selectedPlanId && tDate === todayStr;
         });
 
-        // Check for reschedule marker
+    
         const rescheduleMarker = todayTasks.find(t => t.status === 'rescheduled');
         if (rescheduleMarker) {
           setIsRescheduled(true);
@@ -102,7 +102,7 @@ function Time() {
           return;
         }
 
-        // Find active task
+  
         const activeTask = todayTasks.find(t => 
           t.subject !== 'Free Slot' && t.status !== 'completed'
         );
@@ -131,7 +131,7 @@ function Time() {
     fetchTodayEvent();
   }, [selectedPlanId]);
 
-  // 4. Countdown Logic
+
   useEffect(() => {
     if (!isActive || secondsLeft <= 0) return;
 
@@ -149,7 +149,7 @@ function Time() {
     return () => clearInterval(interval);
   }, [isActive, secondsLeft]);
 
-  // Helper Functions
+
   const calculateDuration = (start, end) => {
     try {
       const [h1, m1] = start.split(':').map(Number);

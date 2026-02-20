@@ -31,7 +31,7 @@ def get_custom_tasks():
             t["_id"] = str(t["_id"])
             t["user_id"] = str(t["user_id"])
             
-            # [FIX IMPORTANT] แปลง created_at เป็น String กันจอขาว
+
             if "created_at" in t and isinstance(t["created_at"], datetime):
                 t["created_at"] = t["created_at"].strftime("%Y-%m-%d %H:%M:%S")
             

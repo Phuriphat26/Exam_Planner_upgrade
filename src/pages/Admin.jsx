@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-// import Sidebar from "../components/Sidebar"; // 1. [FIX] คอมเมนต์ออก
+
 
 export default function AdminDashboard() {
   const [liveStats, setLiveStats] = useState(null);
@@ -21,7 +21,7 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error('Fetch summary error:', err);
       setError('ไม่สามารถดึงข้อมูลสรุปได้ หรือคุณไม่มีสิทธิ์เข้าถึง');
-      // ถ้าโดน 403 (Forbidden) ให้เด้งกลับหน้า login
+
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
         navigate('/login');
       }
@@ -35,7 +35,7 @@ export default function AdminDashboard() {
     fetchSummary();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ฟังก์ชันสำหรับ "กดปุ่มสรุป" (สร้าง Log ใหม่)
+  
   const handleCreateSummary = async () => {
     if (!window.confirm('คุณต้องการสร้างรายงานสรุปผล ณ เวลานี้หรือไม่?')) {
       return;
@@ -51,16 +51,16 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- ⭐️ 1. เพิ่มฟังก์ชัน Logout ---
+  // เพิ่มฟังก์ชัน Logout 
   const handleLogout = async () => {
     if (!window.confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
       return;
     }
     try {
-      // (เราจะเรียกใช้ /logout/ ที่อยู่ในไฟล์ login_routes.py)
+      // เรียกใช้ /logout/ ที่อยู่ในไฟล์ login_routes.py
       await axios.post('http://localhost:5000/login/logout', {}, { withCredentials: true });
       alert('ออกจากระบบสำเร็จ');
-      navigate('/login'); // เด้งกลับไปหน้า Login
+      navigate('/login'); 
     } catch (err) {
       console.error('Logout error:', err);
       alert('เกิดข้อผิดพลาดในการออกจากระบบ');
@@ -82,7 +82,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto">
         
-        {/* --- ⭐️ 2. แก้ไข Header ให้มีปุ่ม Logout --- */}
+    
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-800">
             Admin Dashboard (หน้าสรุปผล)
@@ -94,11 +94,11 @@ export default function AdminDashboard() {
             ออกจากระบบ
           </button>
         </div>
-        {/* -------------------------------------- */}
 
-        {/* ส่วนที่ 1: สถิติ ณ ปัจจุบัน (Live Stats) */}
+
+    
         <div className="mb-8">
-          {/* ... existing code ... */}
+  
           <h2 className="text-2xl font-semibold text-gray-700 mb-4">สถิติ ณ ปัจจุบัน (Live)</h2>
           {liveStats && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -110,9 +110,9 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* ส่วนที่ 2: ประวัติการสรุปผล (Log History) */}
+  
         <div>
-          {/* ... existing code ... */}
+
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold text-gray-700">ประวัติการสรุปผล</h2>
             <button
@@ -166,7 +166,7 @@ export default function AdminDashboard() {
   );
 }
 
-// Helper Component สำหรับการ์ดสถิติ
+
 const StatCard = ({ title, value }) => (
   <div className="bg-white p-6 rounded-lg shadow-md">
     <p className="text-sm font-medium text-gray-500">{title}</p>

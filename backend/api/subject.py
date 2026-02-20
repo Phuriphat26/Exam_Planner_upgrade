@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, session
 from flask_cors import CORS
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-from datetime import datetime, date # [FIX] เพิ่ม date เข้ามาด้วย
+from datetime import datetime, date
 import traceback
 
 subject_bp = Blueprint("subject_bp", __name__, url_prefix='/subject')
@@ -13,7 +13,7 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["mydatabase"]
 courses_collection = db["subject"]
 
-# --- Helper Function สำหรับตรวจสอบและแปลงข้อมูล ---
+
 def validate_and_structure_course(data):
     """
     ฟังก์ชันสำหรับ Validate และจัดเตรียมข้อมูลก่อนบันทึกลง DB
@@ -21,7 +21,7 @@ def validate_and_structure_course(data):
     errors = []
     structured_data = {}
 
-    # 1. Required Fields (ข้อมูลพื้นฐาน)
+    # Required Fields (ข้อมูลพื้นฐาน)
     if not data.get("title"): errors.append("Missing 'title'")
     
     subject_code = data.get("subject_code") or data.get("subject")
@@ -31,7 +31,7 @@ def validate_and_structure_course(data):
     else:
         structured_data["subject_code"] = subject_code
     
-    # 2. Numeric Validation (ตัวเลข)
+    # Numeric Validation (ตัวเลข)
     try:
         credits = int(data.get("credits", 0))
         if credits < 0: errors.append("Credits must be positive")
@@ -50,10 +50,10 @@ def validate_and_structure_course(data):
     except (ValueError, TypeError):
         errors.append("Credits, Priority, or Difficulty must be numbers")
 
-    # [FIX] เพิ่มส่วนบันทึกวันที่กลับเข้ามา
+ 
     exam_date_raw = data.get("exam_date")
     if exam_date_raw:
-        # ถ้าเป็น string ว่างๆ ให้ข้าม
+
         if isinstance(exam_date_raw, str) and exam_date_raw.strip() == "":
             structured_data["exam_date"] = None
         else:
@@ -61,7 +61,7 @@ def validate_and_structure_course(data):
     else:
         structured_data["exam_date"] = None
 
-    # 3. Topics Breakdown (หัวข้อย่อย)
+
     topics = data.get("topics", [])
     if isinstance(topics, list):
         formatted_topics = []
@@ -77,14 +77,14 @@ def validate_and_structure_course(data):
     else:
         structured_data["topics"] = []
 
-    # 4. Optional Fields
+
     structured_data["title"] = data.get("title")
     structured_data["color"] = data.get("color", "#3B82F6") 
     structured_data["description"] = data.get("description", "")
 
     return structured_data, errors
 
-# --- Routes ---
+
 
 @subject_bp.route("/", methods=["GET"])
 def get_all_courses():
@@ -104,16 +104,15 @@ def get_all_courses():
             subject['_id'] = str(subject['_id'])
             subject['user_id'] = str(subject['user_id'])
             
-            # [FIX] แปลง exam_date เป็น String เพื่อป้องกันหน้าขาว (Error Object Child)
             if "exam_date" in subject and subject["exam_date"]:
-                # เช็คว่าเป็น Date Object ของ Python หรือไม่
+
                 if isinstance(subject["exam_date"], (datetime, date)):
                     subject["exam_date"] = subject["exam_date"].strftime("%Y-%m-%d")
                 else:
-                    # กรณีเป็น Object อื่นๆ หรือ String อยู่แล้ว
+         
                     subject["exam_date"] = str(subject["exam_date"])
             else:
-                subject["exam_date"] = "-" # ถ้าไม่มีให้ใส่ขีด
+                subject["exam_date"] = "-" 
             
             subjects_list.append(subject)
 
